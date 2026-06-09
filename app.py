@@ -331,6 +331,10 @@ with sum_col:
     elif spy_mom_1m < -3: signals.append("🔴 Bonds leading — defensive")
     else: signals.append("🟡 Equity/bond ratio balanced")
 
+    if cg_mom_1m > 3: signals.append("🟢 Copper outperforming gold — growth optimism")
+    elif cg_mom_1m < -3: signals.append("🔴 Gold outperforming copper — safety demand")
+    else: signals.append("🟡 Copper/Gold ratio stable")
+
     st.markdown(
         f"""<div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px 20px;">
         {"<br>".join(f'<span style="font-size:0.95rem;">{s}</span>' for s in signals)}
