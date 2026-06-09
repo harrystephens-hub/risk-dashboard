@@ -93,9 +93,9 @@ def load_all_data():
     fred_hist = pd.DataFrame(fred_hist)
     fred_hist.index = fred_hist.index.tz_localize(None)
 
-    # Combine historical
+        # Combine historical
     hist = yf_hist.join(fred_hist, how="outer").ffill()
-        hist["SPY_vs_TLT"] = hist["SPY"] / hist["TLT"]
+    hist["SPY_vs_TLT"] = hist["SPY"] / hist["TLT"]
     hist["Copper_vs_Gold"] = hist["Copper"] / hist["Gold"]
     hist["HY_bps"] = hist["HY_OAS"] * 100
     hist["EEM_vs_SPY"] = hist["EEM"] / hist["SPY"]
