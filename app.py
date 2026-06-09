@@ -80,7 +80,8 @@ def load_all_data():
 
     # Yahoo Finance: 5 years of daily data
     tickers = {"VIX":"^VIX","SPY":"SPY","TLT":"TLT","EEM":"EEM","HYG":"HYG","LQD":"LQD",
-               "DXY":"DX-Y.NYB","Copper":"HG=F","Gold":"GC=F","USDJPY":"JPY=X"}
+               "DXY":"DX-Y.NYB","Copper":"HG=F","Gold":"GC=F","USDJPY":"JPY=X",
+               "XLY":"XLY","XLP":"XLP"}
     yf_hist = yf.download(list(tickers.values()), start=hist_start, end=hist_end, progress=False)["Close"]
     yf_hist = yf_hist.rename(columns={v:k for k,v in tickers.items()})
 
@@ -100,11 +101,12 @@ def load_all_data():
     hist["HY_bps"] = hist["HY_OAS"] * 100
     hist["EEM_vs_SPY"] = hist["EEM"] / hist["SPY"]
     hist["HYG_vs_LQD"] = hist["HYG"] / hist["LQD"]
+    hist["XLY_vs_XLP"] = hist["XLY"] / hist["XLP"]
 
     # --- Dashboard data (6 months) ---
     dash_start = today - timedelta(days=180)
     df = hist.loc[dash_start:].copy()
-    for col in ["VIX","HY_bps","T10Y2Y","DXY","SPY_vs_TLT","Copper_vs_Gold"]:
+    for col in ["VIX","HY_bps","T10Y2Y","DXY","SPY_vs_TLT","Copper_vs_Gold","EEM_vs_SPY","HYG_vs_LQD","XLY_vs_XLP"]:
         df[col+"_SMA"] = df[col].rolling(20).mean()
 
     return df, hist
@@ -357,7 +359,7 @@ cutoff = df.index[-1] - timedelta(days=range_map[date_range])
 chart_df = df.loc[cutoff:]
 
 fig = make_subplots(
-    rows=7, cols=1, shared_xaxes=True, vertical_spacing=0.05,
+    rows=9, cols=1, shared_xaxes=True, vertical_spacing=0.05,
     subplot_titles=(
         f"① VIX — Fear Index  |  Rising = growing fear",
         f"② High-Yield Spread — Credit stress (bps)  |  Wider = more default risk",
@@ -366,8 +368,10 @@ fig = make_subplots(
         f"⑤ SPY / TLT — Stocks vs Bonds  |  Rising = risk-on appetite",
         f"⑥ Copper / Gold — Growth vs Safety  |  Rising = industrial optimism",
         f"⑦ EEM / SPY — Emerging Markets vs S&P 500  |  Rising = capital flowing to EM",
+        f"⑧ HYG / LQD — Junk vs IG Bonds  |  Rising = credit risk appetite",
+        f"⑨ XLY / XLP — Consumer Disc. vs Staples  |  Rising = cyclical risk-on rotation",
     ),
-    row_heights=[1,1,1,1,1,1,1]
+    row_heights=[1,1,1,1,1,1,1,1,1]
 )
 
 panels = [
@@ -378,8 +382,9 @@ panels = [
     (5, "SPY_vs_TLT", "SPY_vs_TLT_SMA", "#9370DB", [], [], 0.3),
     (6, "Copper_vs_Gold", "Copper_vs_Gold_SMA", "#DAA520", [], [], 0.0002),
     (7, "EEM_vs_SPY", None, "#2E86AB", [], [], 0.005),
+    (8, "HYG_vs_LQD", "HYG_vs_LQD_SMA", "#E07B39", [], [], 0.01),
+    (9, "XLY_vs_XLP", "XLY_vs_XLP_SMA", "#6A994E", [], [], 0.02),
 ]
-
 for row, col, trend, color, hlines, hcolors, pad in panels:
     fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[col],
         line=dict(color=color, width=2.2), name=col, showlegend=(row==1)), row=row, col=1)
@@ -396,12 +401,12 @@ for row, col, trend, color, hlines, hcolors, pad in panels:
 fig.add_hrect(y0=-3, y1=0, line_width=0, fillcolor="red", opacity=0.06, row=3, col=1)
 
 fig.update_layout(
-    height=1150, hovermode="x unified",
+    height=1400, hovermode="x unified",
     legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5, font=dict(size=11)),
     margin=dict(t=60, b=40, l=40, r=40),
     plot_bgcolor="white", paper_bgcolor="white"
 )
-for i in range(1,8):
+for i in range(1,10):
     fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", zeroline=False, row=i, col=1)
     fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", row=i, col=1)
 
