@@ -227,7 +227,9 @@ else: risk_label = "🔴 HIGH RISK"
 week_changes = []
 for label, col, direction in [("VIX", "VIX", "fell" if latest["VIX"] < one_week_ago["VIX"] else "rose"),
                                 ("credit spreads", "HY_bps", "tightened" if latest["HY_bps"] < one_week_ago["HY_bps"] else "widened"),
-                                ("DXY", "DXY", "weakened" if latest["DXY"] < one_week_ago["DXY"] else "strengthened")]:
+                                ("DXY", "DXY", "weakened" if latest["DXY"] < one_week_ago["DXY"] else "strengthened"),
+                                ("SPY/TLT", "SPY_vs_TLT", "fell" if latest["SPY_vs_TLT"] < one_week_ago["SPY_vs_TLT"] else "rose"),
+                                ("Copper/Gold", "Copper_vs_Gold", "fell" if latest["Copper_vs_Gold"] < one_week_ago["Copper_vs_Gold"] else "rose")]:
     week_changes.append(f"{label} {direction}")
 
 st.info(f"**📰 This week:** {', '.join(week_changes)}. "
