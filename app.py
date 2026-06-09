@@ -357,7 +357,7 @@ cutoff = df.index[-1] - timedelta(days=range_map[date_range])
 chart_df = df.loc[cutoff:]
 
 fig = make_subplots(
-    rows=6, cols=1, shared_xaxes=True, vertical_spacing=0.06,
+    rows=7, cols=1, shared_xaxes=True, vertical_spacing=0.05,
     subplot_titles=(
         f"① VIX — Fear Index  |  Rising = growing fear",
         f"② High-Yield Spread — Credit stress (bps)  |  Wider = more default risk",
@@ -365,8 +365,9 @@ fig = make_subplots(
         f"④ US Dollar (DXY) — Currency strength  |  Rising = risk-off USD demand",
         f"⑤ SPY / TLT — Stocks vs Bonds  |  Rising = risk-on appetite",
         f"⑥ Copper / Gold — Growth vs Safety  |  Rising = industrial optimism",
+        f"⑦ EEM / SPY — Emerging Markets vs S&P 500  |  Rising = capital flowing to EM",
     ),
-    row_heights=[1,1,1,1,1,1]
+    row_heights=[1,1,1,1,1,1,1]
 )
 
 panels = [
@@ -376,14 +377,16 @@ panels = [
     (4, "DXY", "DXY_SMA", "#008080", [100], ["grey"], 1),
     (5, "SPY_vs_TLT", "SPY_vs_TLT_SMA", "#9370DB", [], [], 0.3),
     (6, "Copper_vs_Gold", "Copper_vs_Gold_SMA", "#DAA520", [], [], 0.0002),
+    (7, "EEM_vs_SPY", None, "#2E86AB", [], [], 0.005),
 ]
 
 for row, col, trend, color, hlines, hcolors, pad in panels:
     fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[col],
         line=dict(color=color, width=2.2), name=col, showlegend=(row==1)), row=row, col=1)
-    fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[trend],
-        line=dict(color="grey", width=1, dash="dash"),
-        name="20-day trend", showlegend=(row==1)), row=row, col=1)
+    if trend:
+        fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[trend],
+            line=dict(color="grey", width=1, dash="dash"),
+            name="20-day trend", showlegend=(row==1)), row=row, col=1)
     for val, hcol in zip(hlines, hcolors):
         fig.add_hline(y=val, line_dash="dot", line_color=hcol, opacity=0.5, row=row, col=1)
     vals = chart_df[col].dropna()
@@ -393,12 +396,12 @@ for row, col, trend, color, hlines, hcolors, pad in panels:
 fig.add_hrect(y0=-3, y1=0, line_width=0, fillcolor="red", opacity=0.06, row=3, col=1)
 
 fig.update_layout(
-    height=1000, hovermode="x unified",
+    height=1150, hovermode="x unified",
     legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5, font=dict(size=11)),
     margin=dict(t=60, b=40, l=40, r=40),
     plot_bgcolor="white", paper_bgcolor="white"
 )
-for i in range(1,7):
+for i in range(1,8):
     fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", zeroline=False, row=i, col=1)
     fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", row=i, col=1)
 
@@ -490,22 +493,30 @@ with st.expander("🔬 Weekend Deep-Dive — Cross-Asset Snapshot & Regime Analy
         st.markdown(part)
         st.markdown("")
 
-    # Biggest mover
+    # Biggest mover (all compared by % change for fair comparison)
     st.markdown("### 📊 Biggest Movers This Week")
     moves = {}
     for label, val, w_ago in [
         ("VIX", vix_val, one_week_ago["VIX"]),
         ("HY Spread", hy_val, one_week_ago["HY_bps"]),
+        ("10Y-2Y", yc_val, one_week_ago["T10Y2Y"]),
         ("DXY", dxy_val, one_week_ago["DXY"]),
         ("SPY/TLT", spy_val, one_week_ago["SPY_vs_TLT"]),
         ("Copper/Gold", cg_val, one_week_ago["Copper_vs_Gold"]),
+        ("EEM/SPY", latest["EEM_vs_SPY"], one_week_ago["EEM_vs_SPY"]),
+        ("HYG/LQD", latest["HYG_vs_LQD"], one_week_ago["HYG_vs_LQD"]),
     ]:
-        if label in ("SPY/TLT", "Copper/Gold"):
-            moves[label] = abs((val/w_ago - 1)*100)
-        else:
-            moves[label] = abs(val - w_ago)
-    top_mover = max(moves, key=moves.get)
-    st.info(f"**{top_mover}** moved the most this week. Check its chart above for context.")
+        pct_change = abs((val/w_ago - 1)*100)
+        direction = "↑" if val > w_ago else "↓"
+        moves[label] = (pct_change, direction)
+
+    # Sort by % change, show top 3
+    sorted_moves = sorted(moves.items(), key=lambda x: x[1][0], reverse=True)
+    top_three = sorted_moves[:3]
+    summary_parts = []
+    for label, (pct, direction) in top_three:
+        summary_parts.append(f"**{label}** {direction} {pct:.1f}%")
+    st.info(f"Top movers this week: {', '.join(summary_parts)}")
 
 # ============================================================
 # EXPLAINERS + LEGEND
