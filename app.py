@@ -95,9 +95,11 @@ def load_all_data():
 
     # Combine historical
     hist = yf_hist.join(fred_hist, how="outer").ffill()
-    hist["SPY_vs_TLT"] = hist["SPY"] / hist["TLT"]
+        hist["SPY_vs_TLT"] = hist["SPY"] / hist["TLT"]
     hist["Copper_vs_Gold"] = hist["Copper"] / hist["Gold"]
     hist["HY_bps"] = hist["HY_OAS"] * 100
+    hist["EEM_vs_SPY"] = hist["EEM"] / hist["SPY"]
+    hist["HYG_vs_LQD"] = hist["HYG"] / hist["LQD"]
 
     # --- Dashboard data (6 months) ---
     dash_start = today - timedelta(days=180)
