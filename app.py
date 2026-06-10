@@ -94,8 +94,8 @@ def load_all_data():
     yf_hist = yf_hist.rename(columns={v:k for k,v in tickers.items()})
 
     # FRED: 5 years
-    fred_series = {"HY_OAS":"BAMLH0A0HYM2","IG_OAS":"BAMLC0A0CM",
-                   "US10Y":"DGS10","US3M":"DGS3MO","T10Y3M":"T10Y3M"}
+    fred_series = {"HY_OAS":"BAMLH0A0HYM2","T10Y3M":"T10Y3M"}
+    
     fred_hist = {}
     for name, sid in fred_series.items():
         fred_hist[name] = fred.get_series(sid, hist_start, today)
