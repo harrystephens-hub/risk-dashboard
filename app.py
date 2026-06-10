@@ -231,8 +231,8 @@ if yc_val < 0: warnings.append(("Yield curve inverted", "🔴"))
 if dxy_val > 105: warnings.append(("Dollar surging", "🟠"))
 if spy_dir == "falling" and spy_mom_1m < -3: warnings.append(("Defensive rotation", "🟠"))
 if cg_dir == "falling" and cg_mom_1m < -3: warnings.append(("Gold outperforming copper", "🟠"))
-if jpy_dir == "falling": warnings.append(("Yen strengthening", "🟠"))
-if aud_dir == "falling": warnings.append(("AUD weakening", "🟠"))
+if jpy_dir == "falling" and jpy_mom_1m < -2: warnings.append(("Yen strengthening sharply", "🟠"))
+if aud_dir == "falling" and aud_mom_1m < -1.5: warnings.append(("AUD weakening notably", "🟠"))
 
 warning_count = len(warnings)
 total_signals = 8
@@ -271,10 +271,17 @@ risk_score = compute_risk_score(vix_val, hy_val, yc_val, dxy_val)
 # "WHAT CHANGED THIS WEEK" LINE
 # ============================================================
 week_changes = []
-for label, col in [("VIX", "VIX"), ("credit spreads", "HY_bps"), ("DXY", "DXY"),
-                     ("SPY/TLT", "SPY_vs_TLT"), ("Copper/Gold", "Copper_vs_Gold"),
-                     ("USD/JPY", "USDJPY"), ("AUD/USD", "AUDUSD")]:
-    direction = "fell" if latest[col] < one_week_ago[col] else "rose"
+# Each indicator gets its own natural language verb
+for label, col, verb_up, verb_down in [
+    ("VIX", "VIX", "rose", "fell"),
+    ("credit spreads", "HY_bps", "widened", "tightened"),
+    ("DXY", "DXY", "strengthened", "weakened"),
+    ("SPY/TLT", "SPY_vs_TLT", "rose", "fell"),
+    ("Copper/Gold", "Copper_vs_Gold", "rose", "fell"),
+    ("USD/JPY", "USDJPY", "rose", "fell"),
+    ("AUD/USD", "AUDUSD", "rose", "fell"),
+]:
+    direction = verb_up if latest[col] > one_week_ago[col] else verb_down
     week_changes.append(f"{label} {direction}")
 
 st.info(f"**📰 This week:** {', '.join(week_changes)}. "
@@ -449,7 +456,7 @@ panels = [
     (6, "Copper_vs_Gold", "Copper_vs_Gold_SMA", "#DAA520", [], [], 0.0002),
     (7, "USDJPY", "USDJPY_SMA", "#C71585", [], [], 3),
     (8, "AUDUSD", "AUDUSD_SMA", "#228B22", [], [], 0.005),
-    (9, "EEM_vs_SPY", None, "#2E86AB", [], [], 0.005),
+    (9, "EEM_vs_SPY", "EEM_vs_SPY_SMA", "#2E86AB", [], [], 0.005),
     (10, "HYG_vs_LQD", "HYG_vs_LQD_SMA", "#E07B39", [], [], 0.01),
     (11, "XLY_vs_XLP", "XLY_vs_XLP_SMA", "#6A994E", [], [], 0.02),
 ]
