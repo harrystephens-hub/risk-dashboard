@@ -129,8 +129,12 @@ with st.spinner("Loading 5 years of historical data for context..."):
     df, hist = load_all_data()
 
 latest = df.iloc[-1]
-one_week_ago = df.iloc[-5] if len(df) > 5 else df.iloc[0]
-one_month_ago = df.iloc[-22] if len(df) > 22 else df.iloc[0]
+# Use calendar date lookups, not row counts (avoids weekend padding issues)
+one_week_date = latest.name - timedelta(days=7)
+one_month_date = latest.name - timedelta(days=30)
+# Find the closest available trading day
+one_week_ago = df.iloc[df.index.get_indexer([one_week_date], method='ffill')[0]]
+one_month_ago = df.iloc[df.index.get_indexer([one_month_date], method='ffill')[0]]
 
 # Timestamp: actual data freshness
 data_date = df.index[-1].date()
@@ -332,7 +336,7 @@ for i, (label, val, w_ago, m_ago, pct_key, gauge_name, col_key) in enumerate(met
     with cols[i % 4]:
         dw = val - w_ago
         dm = val - m_ago
-        if label in ("SPY/TLT", "Cu/Au", "AUD/USD", "USD/JPY"):
+        if label in ("SPY/TLT", "Cu/Au", "AUD/USD", "USD/JPY", "VIX", "DXY"):
             dw_s = f"{(val/w_ago - 1)*100:+.1f}%"
             dm_s = f"{(val/m_ago - 1)*100:+.1f}%"
         elif label == "HY Spread":
