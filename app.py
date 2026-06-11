@@ -340,18 +340,22 @@ if full_view:
 
     sec_specs = [
         ("USDJPY", "USD/JPY", usdjpy_val), ("Copper_vs_Gold", "Cu/Au", cg_val),
-        ("AUDUSD", "AUD/USD", aud_val), ("EEM_vs_SPY", "EEM/SPY", eem_val),
-        ("HYG_vs_LQD", "HYG/LQD", hyg_val), ("XLY_vs_XLP", "XLY/XLP", xly_val),
+        ("AUDUSD", "AUD/USD", aud_val),
     ]
-    cols2 = st.columns(6)
-    pct_keys = ["SPY_vs_TLT", "Copper_vs_Gold", "AUDUSD", "USDJPY", "EEM_vs_SPY", "HYG_vs_LQD", "XLY_vs_XLP", "VIX", "DXY"]
+    # Only include ratio columns if they exist in the dataframe
+    for key, label, val in [("EEM_vs_SPY", "EEM/SPY", eem_val), ("HYG_vs_LQD", "HYG/LQD", hyg_val), ("XLY_vs_XLP", "XLY/XLP", xly_val)]:
+        if key in df.columns and key in one_week_ago.index:
+            sec_specs.append((key, label, val))
+
+    cols2 = st.columns(len(sec_specs))
+    pct_keys_list = ["SPY_vs_TLT", "Copper_vs_Gold", "AUDUSD", "USDJPY", "EEM_vs_SPY", "HYG_vs_LQD", "XLY_vs_XLP", "VIX", "DXY"]
     for col, (key, label, val) in zip(cols2, sec_specs):
         with col:
             cfg = INDICATOR_CONFIG[key]
             w = one_week_ago[key] if key in one_week_ago.index else None
             m = one_month_ago[key] if key in one_month_ago.index else None
-            dw_s = f"{(val/w - 1)*100:+.1f}%" if (val and w and pd.notna(val) and pd.notna(w)) else "N/A"
-            dm_s = f"{(val/m - 1)*100:+.1f}%" if (val and m and pd.notna(val) and pd.notna(m)) else "N/A"
+            dw_s = f"{(val/w - 1)*100:+.1f}%" if (val is not None and w is not None and pd.notna(val) and pd.notna(w)) else "N/A"
+            dm_s = f"{(val/m - 1)*100:+.1f}%" if (val is not None and m is not None and pd.notna(val) and pd.notna(m)) else "N/A"
             disp = f"{val:.{cfg['decimals']}f}" if val is not None and pd.notna(val) else "N/A"
             st.metric(label, disp, delta=f"{dw_s} | {dm_s}", delta_color="normal")
             if key in pct_data:
@@ -376,37 +380,42 @@ if full_view:
     chart_df = df.loc[cutoff:].copy()
     chart_df = chart_df[chart_df.index.dayofweek < 5]
 
+    # Only chart indicators that exist in the dataframe
+    chart_keys = [k for k in INDICATOR_CONFIG.keys() if k in chart_df.columns]
+    num_charts = len(chart_keys)
+
     fig = make_subplots(
-        rows=13, cols=1, shared_xaxes=True, vertical_spacing=0.035,
-        subplot_titles=[f"{cfg['question']}" for cfg in INDICATOR_CONFIG.values()],
-        row_heights=[1]*13
+        rows=num_charts, cols=1, shared_xaxes=True, vertical_spacing=0.035,
+        subplot_titles=[f"{INDICATOR_CONFIG[k]['question']}" for k in chart_keys],
+        row_heights=[1]*num_charts
     )
 
-    panel_keys = list(INDICATOR_CONFIG.keys())
-    for i, key in enumerate(panel_keys):
+    for i, key in enumerate(chart_keys):
         row = i + 1
         cfg = INDICATOR_CONFIG[key]
-        if key in chart_df.columns:
-            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[key],
-                line=dict(color=cfg["color"], width=2), name=key, showlegend=(row==1)), row=row, col=1)
-            sma_col = key + "_SMA"
-            if sma_col in chart_df.columns:
-                fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[sma_col],
-                    line=dict(color="grey", width=1, dash="dash"), name="20d trend", showlegend=(row==1)), row=row, col=1)
-            for val, col_ref in zip(cfg["fixed_refs"], cfg["ref_colors"]):
-                fig.add_hline(y=val, line_dash="dot", line_color=col_ref, opacity=0.5, row=row, col=1)
-            vals = chart_df[key].dropna()
-            if len(vals) > 0:
-                pad = (vals.max() - vals.min()) * 0.15 or 1
-                fig.update_yaxes(range=[vals.min()-pad, vals.max()+pad], row=row, col=1)
+        fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[key],
+            line=dict(color=cfg["color"], width=2), name=key, showlegend=(row==1)), row=row, col=1)
+        sma_col = key + "_SMA"
+        if sma_col in chart_df.columns:
+            fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[sma_col],
+                line=dict(color="grey", width=1, dash="dash"), name="20d trend", showlegend=(row==1)), row=row, col=1)
+        for ref_val, ref_col in zip(cfg["fixed_refs"], cfg["ref_colors"]):
+            fig.add_hline(y=ref_val, line_dash="dot", line_color=ref_col, opacity=0.5, row=row, col=1)
+        vals = chart_df[key].dropna()
+        if len(vals) > 0:
+            pad = (vals.max() - vals.min()) * 0.15 or 1
+            fig.update_yaxes(range=[vals.min()-pad, vals.max()+pad], row=row, col=1)
 
-    # Yield curve red zone (row 3)
-    fig.add_hrect(y0=-3, y1=0, line_width=0, fillcolor="red", opacity=0.06, row=3, col=1)
+    # Yield curve red zone — find which row is T10Y3M
+    if "T10Y3M" in chart_keys:
+        yc_row = chart_keys.index("T10Y3M") + 1
+        fig.add_hrect(y0=-3, y1=0, line_width=0, fillcolor="red", opacity=0.06, row=yc_row, col=1)
 
-    fig.update_layout(height=1900, hovermode="x unified",
+    chart_height = max(800, num_charts * 130)
+    fig.update_layout(height=chart_height, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5, font=dict(size=10)),
         margin=dict(t=60, b=40, l=40, r=40), plot_bgcolor="white", paper_bgcolor="white")
-    for i in range(1, 14):
+    for i in range(1, num_charts+1):
         fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", zeroline=False, row=i, col=1)
         fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", row=i, col=1)
 
@@ -418,43 +427,51 @@ if full_view:
     with st.expander("🔬 Weekend Deep-Dive — Cross-Asset Snapshot & Regime Analysis"):
         st.markdown("### 📋 Cross-Asset Snapshot")
         snap = []
-        all_specs = core_specs + sec_specs + [("DGS2", "2Y Yield", dgs2_val), ("Gold_vs_Oil", "Gold/Oil", go_val), ("WALCL_T", "Fed Balance Sheet", walcl_val)]
-        for key, label, val in all_specs:
+        deep_specs = [
+            ("VIX", "VIX", vix_val), ("HY_bps", "HY Spread", hy_val), ("T10Y3M", "10Y-3M", yc_val),
+            ("DXY", "DXY", dxy_val), ("NFCI", "NFCI", nfci_val), ("SPY_vs_TLT", "SPY/TLT", spy_val),
+            ("USDJPY", "USD/JPY", usdjpy_val), ("Copper_vs_Gold", "Cu/Au", cg_val),
+            ("AUDUSD", "AUD/USD", aud_val),
+        ]
+        for key, label, val in [("EEM_vs_SPY", "EEM/SPY", eem_val), ("HYG_vs_LQD", "HYG/LQD", hyg_val), ("XLY_vs_XLP", "XLY/XLP", xly_val), ("DGS2", "2Y Yield", dgs2_val), ("Gold_vs_Oil", "Gold/Oil", go_val), ("WALCL_T", "Fed Balance Sheet", walcl_val)]:
+            if val is not None:
+                deep_specs.append((key, label, val))
+
+        for key, label, val in deep_specs:
             if val is None:
                 continue
             cfg = INDICATOR_CONFIG.get(key, {})
             w = one_week_ago[key] if key in one_week_ago.index else None
             m = one_month_ago[key] if key in one_month_ago.index else None
-            pct_keys = ["SPY_vs_TLT", "Copper_vs_Gold", "AUDUSD", "USDJPY", "EEM_vs_SPY", "HYG_vs_LQD", "XLY_vs_XLP", "VIX", "DXY", "Gold_vs_Oil"]
-            ch_w_s = f"{(val/w - 1)*100:+.1f}%" if (val and w and pd.notna(val) and pd.notna(w) and key in pct_keys) else (f"{val - w:+.{cfg.get('decimals', 1)}f}{cfg.get('unit', '')}" if (val and w and pd.notna(val) and pd.notna(w)) else "N/A")
-            ch_m_s = f"{(val/m - 1)*100:+.1f}%" if (val and m and pd.notna(val) and pd.notna(m) and key in pct_keys) else (f"{val - m:+.{cfg.get('decimals', 1)}f}{cfg.get('unit', '')}" if (val and m and pd.notna(val) and pd.notna(m)) else "N/A")
+            pct_keys_snap = ["SPY_vs_TLT", "Copper_vs_Gold", "AUDUSD", "USDJPY", "EEM_vs_SPY", "HYG_vs_LQD", "XLY_vs_XLP", "VIX", "DXY", "Gold_vs_Oil"]
+            ch_w_s = f"{(val/w - 1)*100:+.1f}%" if (val is not None and w is not None and pd.notna(val) and pd.notna(w) and key in pct_keys_snap) else (f"{val - w:+.{cfg.get('decimals', 1)}f}{cfg.get('unit', '')}" if (val is not None and w is not None and pd.notna(val) and pd.notna(w)) else "N/A")
+            ch_m_s = f"{(val/m - 1)*100:+.1f}%" if (val is not None and m is not None and pd.notna(val) and pd.notna(m) and key in pct_keys_snap) else (f"{val - m:+.{cfg.get('decimals', 1)}f}{cfg.get('unit', '')}" if (val is not None and m is not None and pd.notna(val) and pd.notna(m)) else "N/A")
             disp = f"{val:.{cfg.get('decimals', 1)}f}{cfg.get('unit', '')}"
             snap.append({"Indicator": label, "Current": disp, "1-Week": ch_w_s, "1-Month": ch_m_s})
         st.dataframe(pd.DataFrame(snap), use_container_width=True, hide_index=True)
 
         st.markdown("### 📝 Macro Regime Description")
         if regime_label == "RISK-ON":
-            st.markdown("**Risk-on regime.** Markets are pricing in growth, credit is calm, and investors are favouring equities over bonds. Core indicators are aligned toward risk appetite.")
+            st.markdown("**Risk-on regime.** Markets are pricing in growth, credit is calm, and investors are favouring equities over bonds.")
         elif regime_label == "RISK-OFF":
-            st.markdown("**Risk-off regime.** Multiple stress signals are active. Defensive positioning is dominant. Capital is flowing toward safety — bonds, USD, yen, gold.")
+            st.markdown("**Risk-off regime.** Multiple stress signals are active. Defensive positioning is dominant.")
         else:
-            st.markdown("**Neutral/mixed regime.** Indicators are split. Some favour risk, others signal caution. No dominant direction — typical of transitional periods.")
+            st.markdown("**Neutral/mixed regime.** Indicators are split. No dominant direction — typical of transitional periods.")
 
         if yc_val is not None and yc_val < 0:
-            st.markdown("The **10Y-3M yield curve is inverted**, historically one of the most reliable recession indicators, though timing between inversion and recession varies significantly (6-24 months).")
+            st.markdown("The **10Y-3M yield curve is inverted**, historically one of the most reliable recession indicators, though timing varies significantly (6-24 months).")
         if re_steepening:
-            st.markdown("⚠️ **Curve re-steepening from inversion detected.** Historically, re-steepening has often coincided with recession arrival or financial stress events.")
+            st.markdown("⚠️ **Curve re-steepening from inversion detected.** Historically, this has often coincided with recession arrival or financial stress events.")
         if stress_percentile > 70:
-            st.markdown(f"**Elevated stress ({stress_percentile:.0f}th percentile).** Conditions are notably tighter than the 10-year average.")
+            st.markdown(f"**Elevated stress ({stress_percentile:.0f}th percentile).** Conditions notably tighter than 10-year average.")
         elif stress_percentile < 30:
-            st.markdown(f"**Low stress ({stress_percentile:.0f}th percentile).** Conditions are notably calmer than the 10-year average.")
+            st.markdown(f"**Low stress ({stress_percentile:.0f}th percentile).** Conditions notably calmer than 10-year average.")
 
-        # Frequency note
         st.markdown("### ⏱ Data Frequency Notes")
         st.markdown("- **Daily:** VIX, HY Spread, 10Y-3M, DXY, SPY/TLT, USD/JPY, AUD/USD, Copper/Gold, EEM/SPY, HYG/LQD, XLY/XLP, 2Y Yield, Gold/Oil")
         st.markdown("- **Weekly (Wed):** NFCI — updated once per week")
         st.markdown("- **Weekly (Thu):** Fed Balance Sheet — updated once per week")
-        st.markdown("Weekly indicators may appear stale between updates. This is expected behaviour, not an error.")
+        st.markdown("Weekly indicators may appear stale between updates. This is expected behaviour.")
 
 # ============================================================
 # EXPLAINERS + LEGEND
@@ -466,22 +483,16 @@ with st.expander("📖 Gauge Explanations & Threshold Legend"):
             st.markdown(f"**{key}** — {cfg['question']}")
     st.markdown("---")
     st.markdown("### Fixed Reference Levels")
-    st.markdown("These are intuition anchors, not the primary classification system (which uses percentiles).")
     for key, cfg in INDICATOR_CONFIG.items():
         if cfg["fixed_refs"]:
             refs = ", ".join([f"{v} ({l})" for v, l in zip(cfg["fixed_refs"], cfg["ref_labels"])])
             st.markdown(f"- **{key}:** {refs}")
     st.markdown("---")
     st.markdown("### Regime Vote Logic")
-    st.markdown("6 core indicators vote: VIX, HY_bps, T10Y3M, DXY, NFCI, SPY_vs_TLT.")
-    st.markdown("- Each indicator gets one vote based on its 10-year percentile")
-    st.markdown("- **Risk-On:** <40th %ile for risky indicators, >60th for safe indicators")
-    st.markdown("- **Risk-Off:** >60th %ile for risky indicators, <40th for safe indicators")
-    st.markdown("- **Neutral:** 40-60th %ile")
-    st.markdown("- Ties break: Risk-Off > Neutral > Risk-On (conservative)")
+    st.markdown("6 core indicators vote. Ties break: Risk-Off > Neutral > Risk-On (conservative).")
     st.markdown("---")
     st.markdown("### Philosophy")
-    st.markdown("**This dashboard identifies macro regimes, not short-term market moves.** Indicators may remain in one state for extended periods while asset prices move differently. It is designed to answer: *what kind of macro environment are we in right now?*")
+    st.markdown("**This dashboard identifies macro regimes, not short-term market moves.** It answers: *what kind of macro environment are we in right now?*")
 
 # ============================================================
 # RAW DATA
