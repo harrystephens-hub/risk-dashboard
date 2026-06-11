@@ -225,14 +225,14 @@ aud_dir = "rising" if aud_mom_1m > 0.5 else ("falling" if aud_mom_1m < -0.5 else
 
 # Count warning signals
 warnings = []
-if vix_val > 25: warnings.append(("VIX elevated", "🔴"))
+if vix_val > 28: warnings.append(("VIX elevated", "🔴"))
 if hy_val > 500: warnings.append(("HY spreads wide", "🔴"))
 if yc_val < 0: warnings.append(("Yield curve inverted", "🔴"))
 if dxy_val > 105: warnings.append(("Dollar surging", "🟠"))
 if spy_dir == "falling" and spy_mom_1m < -3: warnings.append(("Defensive rotation", "🟠"))
 if cg_dir == "falling" and cg_mom_1m < -3: warnings.append(("Gold outperforming copper", "🟠"))
-if jpy_dir == "falling" and jpy_mom_1m < -2: warnings.append(("Yen strengthening sharply", "🟠"))
-if aud_dir == "falling" and aud_mom_1m < -1.5: warnings.append(("AUD weakening notably", "🟠"))
+if jpy_dir == "falling" and jpy_mom_1m < -2: warnings.append(("Yen strengthening sharply", "🔴"))
+if aud_dir == "falling" and aud_mom_1m < -2: warnings.append(("AUD weakening notably", "🔴"))
 
 warning_count = len(warnings)
 total_signals = 8
@@ -395,7 +395,7 @@ with sum_col:
     st.subheader("🧠 Summary")
     signals = []
     if vix_val > 30: signals.append("🔴 VIX above 30 — extreme fear")
-    elif vix_val > 25: signals.append("🟠 VIX elevated — heightened caution")
+    elif vix_val > 28: signals.append("🔴 VIX elevated — heightened caution")
     elif vix_val > 20: signals.append("🟡 VIX moderately elevated")
     else: signals.append("🟢 VIX in calm range")
 
@@ -420,11 +420,13 @@ with sum_col:
     else: signals.append("🟡 Copper/Gold ratio stable")
 
     if jpy_mom_1m > 1: signals.append("🟢 Yen weakening — risk-on flows")
-    elif jpy_mom_1m < -1: signals.append("🔴 Yen strengthening — flight to safety")
+    elif jpy_mom_1m < -2: signals.append("🔴 Yen strengthening — flight to safety")
+    elif jpy_mom_1m < -1: signals.append("🟡 Yen firming — cautious")
     else: signals.append("🟡 USD/JPY stable")
 
     if aud_mom_1m > 1: signals.append("🟢 AUD rising — growth appetite")
-    elif aud_mom_1m < -1: signals.append("🔴 AUD falling — growth concerns")
+    elif aud_mom_1m < -2: signals.append("🔴 AUD falling — growth concerns")
+    elif aud_mom_1m < -1: signals.append("🟡 AUD soft — watch")
     else: signals.append("🟡 AUD/USD stable")
 
     st.markdown(
