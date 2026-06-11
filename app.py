@@ -83,7 +83,7 @@ def load_all_data():
     fred = Fred(api_key=fred_key)
 
     today = datetime.today()
-    hist_start = today - timedelta(days=5*365)
+    hist_start = today - timedelta(days=3*365)
 
     # Yahoo Finance: 5 years of daily data
     tickers = {"VIX":"^VIX","SPY":"SPY","TLT":"TLT","EEM":"EEM","HYG":"HYG","LQD":"LQD",
@@ -125,7 +125,7 @@ if st.button("🔄 Refresh data now (clear cache)"):
     st.cache_data.clear()
     st.rerun()
 
-with st.spinner("Loading 5 years of historical data for context..."):
+with st.spinner("Loading 3 years of historical data for context..."):
     df, hist = load_all_data()
 
 latest = df.iloc[-1]
@@ -160,7 +160,7 @@ if is_stale:
 else:
     stale_warning = ""
 
-st.caption(f"Dashboard: {df.index[0].date()} – {data_date} | {freshness} | Page loaded: {cache_time.strftime('%Y-%m-%d %H:%M UTC')}")
+st.caption(f"Dashboard: {df.index[0].date()} – {data_date} | Percentiles based on 3-year history | Page loaded: {cache_time.strftime('%Y-%m-%d %H:%M UTC')}")
 if stale_warning:
     st.warning(stale_warning)
 
@@ -271,6 +271,9 @@ elif warning_count <= 4:
     signal_summary = f"🟠 {warning_count}/{total_signals} signals warning — elevated caution"
 else:
     signal_summary = f"🔴 {warning_count}/{total_signals} signals warning — high alert"
+
+# Note on FX thresholds
+signal_note = "FX warnings trigger at ±2% monthly move. Summary shows intermediate caution at ±1%."
 
 # Legacy risk score (demoted, SPY momentum bonus removed)
 def compute_risk_score(vix, hy_bps, yc, dxy):
@@ -387,13 +390,13 @@ with sig_col:
     st.subheader("🚦 Signal Count")
     st.markdown(f"<h1 style='text-align:center;margin:0;'>{warning_count}<span style='font-size:1.5rem;'>/{total_signals}</span></h1>",
                 unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center;font-weight:bold;font-size:1.1rem;'>{signal_summary}</p>",
                 unsafe_allow_html=True)
     if warnings:
         for w_label, w_icon in warnings:
             st.markdown(f"{w_icon} {w_label}")
     else:
         st.success("No warning signals active")
+    st.caption(signal_note)
     st.divider()
     st.caption(f"Reference score: {risk_score}/100 — composite of VIX, credit spreads, yield curve & DXY only")
     st.progress(risk_score / 100)
@@ -474,7 +477,9 @@ with chart_col2:
 
 range_map = {"1 month": 22, "3 months": 66, "6 months": 132, "1 year": 260}
 cutoff = df.index[-1] - timedelta(days=range_map[date_range])
-chart_df = df.loc[cutoff:]
+chart_df = df.loc[cutoff:].copy()
+# Remove weekend rows (Monday=0, Sunday=6)
+chart_df = chart_df[chart_df.index.dayofweek < 5]
 
 fig = make_subplots(
     rows=11, cols=1, shared_xaxes=True, vertical_spacing=0.04,
@@ -616,11 +621,11 @@ with st.expander("🔬 Weekend Deep-Dive — Cross-Asset Snapshot & Regime Analy
     moves_abs = {}
     moves_pct = {}
     for label, val, w_ago, use_abs in [
-        ("VIX", vix_val, one_week_ago["VIX"], True),
         ("HY Spread", hy_val, one_week_ago["HY_bps"], True),
         ("10Y-3M", yc_val, one_week_ago["T10Y3M"], True),
-        ("DXY", dxy_val, one_week_ago["DXY"], True),
-        ("USD/JPY", usdjpy_val, one_week_ago["USDJPY"], True),
+        ("VIX", vix_val, one_week_ago["VIX"], False),
+        ("DXY", dxy_val, one_week_ago["DXY"], False),
+        ("USD/JPY", usdjpy_val, one_week_ago["USDJPY"], False),
         ("SPY/TLT", spy_val, one_week_ago["SPY_vs_TLT"], False),
         ("Copper/Gold", cg_val, one_week_ago["Copper_vs_Gold"], False),
         ("AUD/USD", audusd_val, one_week_ago["AUDUSD"], False),
