@@ -5,670 +5,327 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from fredapi import Fred
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
+
+# ============================================================
+# INDICATOR CONFIGURATION
+# ============================================================
+INDICATOR_CONFIG = {
+    "VIX": {"higher_is_riskier": True, "tier": 1, "votes": True, "frequency": "daily", "percentile_window_years": 10, "question": "Is equity fear rising?", "unit": "", "decimals": 1, "color": "#DC143C", "fixed_refs": [20, 30], "ref_labels": ["Elevated", "Panic"], "ref_colors": ["orange", "red"], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "VIX"},
+    "HY_bps": {"higher_is_riskier": True, "tier": 1, "votes": True, "frequency": "daily", "percentile_window_years": 10, "question": "Is credit stress rising?", "unit": "bps", "decimals": 0, "color": "#FF8C00", "fixed_refs": [500], "ref_labels": ["Stress"], "ref_colors": ["red"], "summary_verb_up": "widened", "summary_verb_down": "tightened", "summary_label": "credit spreads"},
+    "T10Y3M": {"higher_is_riskier": False, "tier": 1, "votes": True, "frequency": "daily", "percentile_window_years": 10, "question": "Is recession risk increasing?", "unit": "%", "decimals": 2, "color": "#4682B4", "fixed_refs": [0], "ref_labels": ["Inverted"], "ref_colors": ["red"], "summary_verb_up": "steepened", "summary_verb_down": "flattened", "summary_label": "yield curve"},
+    "DXY": {"higher_is_riskier": True, "tier": 2, "votes": True, "frequency": "daily", "percentile_window_years": 10, "question": "Are financial conditions tightening?", "unit": "", "decimals": 1, "color": "#008080", "fixed_refs": [100], "ref_labels": ["Parity"], "ref_colors": ["grey"], "summary_verb_up": "strengthened", "summary_verb_down": "weakened", "summary_label": "DXY"},
+    "NFCI": {"higher_is_riskier": True, "tier": 2, "votes": True, "frequency": "weekly", "percentile_window_years": 10, "question": "Are financial conditions tightening?", "unit": "", "decimals": 2, "color": "#8B0000", "fixed_refs": [0], "ref_labels": ["Tight"], "ref_colors": ["red"], "summary_verb_up": "tightened", "summary_verb_down": "loosened", "summary_label": "financial conditions"},
+    "SPY_vs_TLT": {"higher_is_riskier": False, "tier": 2, "votes": True, "frequency": "daily", "percentile_window_years": 10, "question": "Are investors embracing risk?", "unit": "", "decimals": 2, "color": "#9370DB", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "SPY/TLT"},
+    "USDJPY": {"higher_is_riskier": False, "tier": 3, "votes": False, "frequency": "daily", "percentile_window_years": 10, "question": "Real-time risk flight?", "unit": "", "decimals": 1, "color": "#C71585", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "USD/JPY"},
+    "Copper_vs_Gold": {"higher_is_riskier": False, "tier": 3, "votes": False, "frequency": "daily", "percentile_window_years": 10, "question": "Growth optimism or safety demand?", "unit": "", "decimals": 4, "color": "#DAA520", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "Copper/Gold"},
+    "AUDUSD": {"higher_is_riskier": False, "tier": 3, "votes": False, "frequency": "daily", "percentile_window_years": 10, "question": "Growth proxy confirmation?", "unit": "", "decimals": 4, "color": "#228B22", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "AUD/USD"},
+    "EEM_vs_SPY": {"higher_is_riskier": False, "tier": 3, "votes": False, "frequency": "daily", "percentile_window_years": "max_available", "question": "Capital flowing to risk?", "unit": "", "decimals": 4, "color": "#2E86AB", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "EEM/SPY"},
+    "HYG_vs_LQD": {"higher_is_riskier": False, "tier": 3, "votes": False, "frequency": "daily", "percentile_window_years": "max_available", "question": "Credit risk appetite?", "unit": "", "decimals": 4, "color": "#E07B39", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "HYG/LQD"},
+    "XLY_vs_XLP": {"higher_is_riskier": False, "tier": 3, "votes": False, "frequency": "daily", "percentile_window_years": "max_available", "question": "Cyclical rotation?", "unit": "", "decimals": 4, "color": "#6A994E", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "rose", "summary_verb_down": "fell", "summary_label": "XLY/XLP"},
+    "DGS2": {"higher_is_riskier": None, "tier": "deep_dive", "votes": False, "frequency": "daily", "percentile_window_years": None, "question": "What is the market pricing for Fed policy?", "unit": "%", "decimals": 2, "color": "#6B8E23", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
+    "Gold_vs_Oil": {"higher_is_riskier": None, "tier": "deep_dive", "votes": False, "frequency": "daily", "percentile_window_years": None, "question": "Growth scare or inflation scare?", "unit": "", "decimals": 2, "color": "#B8860B", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
+    "WALCL_T": {"higher_is_riskier": None, "tier": "deep_dive", "votes": False, "frequency": "weekly", "percentile_window_years": None, "question": "Is liquidity expanding or contracting?", "unit": "$T", "decimals": 2, "color": "#4B0082", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
+}
 
 # ============================================================
 # PAGE SETUP
 # ============================================================
 st.set_page_config(page_title="Global Risk Dashboard", page_icon="🌍", layout="wide")
+view_mode = st.radio("🔍 View", ["Quick View", "Full Dashboard"], horizontal=True, index=0)
+full_view = view_mode == "Full Dashboard"
 st.title("🌍 Global Risk & Capital Flow Dashboard")
 
-# ============================================================
-# LEGEND DATA
-# ============================================================
-GAUGE_LEGENDS = {
-    "VIX": [
-        ("< 15", "Very low — complacency risk", "#22C55E"),
-        ("15–20", "Calm", "#86EFAC"),
-        ("20–28", "Elevated caution", "#FDE047"),
-        ("28–30", "High caution", "#FB923C"),
-        ("> 30", "Panic / extreme fear", "#EF4444"),
-    ],
-    "HY Spread": [
-        ("< 300 bps", "Low stress", "#22C55E"),
-        ("300–500 bps", "Moderate", "#FDE047"),
-        ("> 500 bps", "Credit stress", "#EF4444"),
-    ],
-    "10Y-3M": [
-        ("> 1.0%", "Steep — normal", "#22C55E"),
-        ("0.0–1.0%", "Flattening — watch", "#FDE047"),
-        ("< 0.0%", "Inverted — recession risk", "#EF4444"),
-    ],
-    "DXY": [
-        ("< 95", "Weak USD — risk-on", "#22C55E"),
-        ("95–105", "Neutral range", "#FDE047"),
-        ("> 105", "Strong USD — risk-off", "#EF4444"),
-    ],
-    "SPY/TLT": [
-        ("Rising", "Risk-on — stocks leading", "#22C55E"),
-        ("Flat", "Neutral", "#FDE047"),
-        ("Falling", "Risk-off — bonds leading", "#EF4444"),
-    ],
-    "Copper/Gold": [
-        ("Rising", "Growth optimism", "#22C55E"),
-        ("Flat", "Neutral", "#FDE047"),
-        ("Falling", "Safety demand", "#EF4444"),
-    ],
-    "USD/JPY": [
-        ("Rising", "Risk-on — yen weakening", "#22C55E"),
-        ("Flat", "Neutral", "#FDE047"),
-        ("Falling", "Risk-off — yen strengthening", "#EF4444"),
-    ],
-}
-
-EXPLAINERS = {
-    "VIX": "The VIX measures expected S&P 500 volatility implied by options prices. It's called the 'fear index' — when investors pay up for protection, VIX rises. Values above 30 usually coincide with market panics.",
-    "HY Spread": "The high-yield (junk) bond spread is the extra yield investors demand over Treasuries to hold risky corporate debt. Widening spreads mean bond markets are pricing in higher default risk — often an early warning of economic trouble.",
-    "10Y-3M": "The 10-year vs 3-month Treasury spread is the Fed's preferred recession indicator. When short-term rates exceed long-term rates (inversion), it signals markets expect a sharp slowdown. It has preceded every US recession since 1960 with no false signals, unlike 10Y-2Y.",
-    "DXY": "The US Dollar Index measures the dollar against a basket of major currencies. A rising dollar means global capital is flowing into USD safe-haven assets, tightening financial conditions worldwide. A falling dollar often signals risk appetite.",
-    "SPY/TLT": "This ratio compares US equities (SPY) to long-term Treasury bonds (TLT). When it rises, stocks are outperforming bonds — investors are taking risk. When it falls, bonds are winning — investors are seeking safety.",
-    "Copper/Gold": "Copper is an industrial metal tied to global growth. Gold is the ultimate safe haven. The ratio rises when growth optimism dominates, and falls when fear and safety demand take over.",
-    "USD/JPY": "USD/JPY is the most reliable real-time risk barometer in FX markets. The yen is the ultimate safe-haven currency. When USD/JPY falls, capital is fleeing to yen safety — often faster than VIX reacts.",
-    "AUD/USD": "The Australian dollar is a commodity currency tied to global growth and Chinese demand. When AUD/USD rises, it signals risk appetite and growth expectations. When it falls, markets are pricing in a global slowdown.",
-    "EEM/SPY": "This ratio compares emerging market equities to US equities. When it rises, capital is flowing into riskier developing markets. When it falls, money is retreating to the perceived safety of US markets.",
-    "HYG/LQD": "This ratio compares high-yield (junk) bonds to investment-grade corporate bonds. When it rises, investors are reaching for yield. When it falls, they're hiding in safer IG debt.",
-    "XLY/XLP": "This ratio compares consumer discretionary stocks to consumer staples. When it rises, investors expect growth. When it falls, they're hiding in defensive staples — a classic risk-off rotation.",
-}
+with st.expander("ℹ️ About this dashboard"):
+    st.markdown("""
+    **This dashboard identifies macro regimes, not short-term market moves.** Indicators may remain in one state for extended periods while asset prices move differently.
+    
+    **Architecture:** 6 core indicators vote on regime (majority wins, ties break conservative). Stress percentile uses 10-year ranks with directional consistency. Weighted signals use a 3/2/1 tier system. Secondary indicators confirm but don't vote. Deep-dive indicators provide additional context.
+    """)
 
 # ============================================================
-# LOAD DATA (cached for 4 hours)
+# LOAD DATA
 # ============================================================
 @st.cache_data(ttl=14400)
 def load_all_data():
     fred_key = os.getenv("FRED_API_KEY")
     if not fred_key:
-        st.error("FRED_API_KEY not set in Streamlit secrets")
+        st.error("FRED_API_KEY not set")
         st.stop()
     fred = Fred(api_key=fred_key)
-
     today = datetime.today()
-    hist_start = today - timedelta(days=3*365)
+    hist_start = today - timedelta(days=10*365)
 
-    # Yahoo Finance
-    tickers = {"VIX":"^VIX","SPY":"SPY","TLT":"TLT","EEM":"EEM","HYG":"HYG","LQD":"LQD",
-               "DXY":"DX-Y.NYB","Copper":"HG=F","Gold":"GC=F",
-               "USDJPY":"JPY=X","AUDUSD":"AUDUSD=X",
-               "XLY":"XLY","XLP":"XLP"}
+    tickers = {"VIX": "^VIX", "SPY": "SPY", "TLT": "TLT", "EEM": "EEM", "HYG": "HYG", "LQD": "LQD", "DXY": "DX-Y.NYB", "Copper": "HG=F", "Gold": "GC=F", "Oil": "CL=F", "USDJPY": "JPY=X", "AUDUSD": "AUDUSD=X", "XLY": "XLY", "XLP": "XLP"}
     yf_hist = yf.download(list(tickers.values()), start=hist_start, end=today, progress=False)["Close"]
-    yf_hist = yf_hist.rename(columns={v:k for k,v in tickers.items()})
+    yf_hist = yf_hist.rename(columns={v: k for k, v in tickers.items()})
 
-    # FRED
-    fred_series = {"HY_OAS":"BAMLH0A0HYM2","T10Y3M":"T10Y3M"}
+    fred_series = {"HY_OAS": "BAMLH0A0HYM2", "T10Y3M": "T10Y3M", "NFCI": "NFCI", "DGS2": "DGS2", "WALCL": "WALCL"}
     fred_hist = {}
     for name, sid in fred_series.items():
         fred_hist[name] = fred.get_series(sid, hist_start, today)
     fred_hist = pd.DataFrame(fred_hist)
     fred_hist.index = fred_hist.index.tz_localize(None)
 
-    # Combine historical
-    hist = yf_hist.join(fred_hist, how="outer").ffill()
-    hist["SPY_vs_TLT"] = hist["SPY"] / hist["TLT"]
-    hist["Copper_vs_Gold"] = hist["Copper"] / hist["Gold"]
-    hist["HY_bps"] = hist["HY_OAS"] * 100
-    hist["EEM_vs_SPY"] = hist["EEM"] / hist["SPY"]
-    hist["HYG_vs_LQD"] = hist["HYG"] / hist["LQD"]
-    hist["XLY_vs_XLP"] = hist["XLY"] / hist["XLP"]
+    percentile_source = yf_hist.join(fred_hist, how="outer").ffill()
+    percentile_source["HY_bps"] = percentile_source["HY_OAS"] * 100
+    percentile_source["SPY_vs_TLT"] = percentile_source["SPY"] / percentile_source["TLT"]
+    percentile_source["Copper_vs_Gold"] = percentile_source["Copper"] / percentile_source["Gold"]
+    percentile_source["Gold_vs_Oil"] = percentile_source["Gold"] / percentile_source["Oil"]
+    percentile_source["EEM_vs_SPY"] = percentile_source["EEM"] / percentile_source["SPY"]
+    percentile_source["HYG_vs_LQD"] = percentile_source["HYG"] / percentile_source["LQD"]
+    percentile_source["XLY_vs_XLP"] = percentile_source["XLY"] / percentile_source["XLP"]
+    percentile_source["WALCL_T"] = percentile_source["WALCL"] / 1_000_000
 
-    # Dashboard data (6 months)
-    dash_start = today - timedelta(days=180)
-    df = hist.loc[dash_start:].copy()
-    for col in ["VIX","HY_bps","T10Y3M","DXY","SPY_vs_TLT","Copper_vs_Gold",
-                 "EEM_vs_SPY","HYG_vs_LQD","XLY_vs_XLP","USDJPY","AUDUSD"]:
-        df[col+"_SMA"] = df[col].rolling(20).mean()
+    dash_start = today - timedelta(days=365)
+    df = percentile_source.loc[dash_start:].copy()
+    for key in INDICATOR_CONFIG:
+        if key in df.columns:
+            df[key + "_SMA"] = df[key].rolling(20).mean()
 
-    return df, hist
+    re_steepening = False
+    if "T10Y3M" in df.columns:
+        curve_series = df["T10Y3M"].dropna()
+        if len(curve_series) >= 252:
+            was_inverted = (curve_series.iloc[-252:] < 0).any()
+            trough = curve_series.iloc[-252:].min()
+            current = curve_series.iloc[-1]
+            re_steepening = was_inverted and (current - trough) > 0.5
 
-# Manual refresh button
+    return df, percentile_source, re_steepening
+
 if st.button("🔄 Refresh data now (clear cache)"):
     st.cache_data.clear()
     st.rerun()
 
-with st.spinner("Loading 3 years of historical data for context..."):
-    df, hist = load_all_data()
+with st.spinner("Loading data..."):
+    df, percentile_source, re_steepening = load_all_data()
 
 latest = df.iloc[-1]
+data_date = df.index[-1].date()
+cache_time = datetime.now(timezone.utc)
+now_date = datetime.now(timezone.utc).date()
+days_behind = (now_date - data_date).days
+freshness = f"Data as of: {data_date}" + (f" ({days_behind} day{'s' if days_behind > 1 else ''} behind)" if days_behind > 0 else " (current)")
+st.caption(f"Dashboard: {df.index[0].date()} – {data_date} | {freshness} | Page loaded: {cache_time.strftime('%Y-%m-%d %H:%M UTC')}")
+if days_behind > 0:
+    st.warning(f"⚠️ Latest data is from {data_date}. Weekly FRED series update on different schedules. Use refresh to check.")
+
 one_week_date = latest.name - timedelta(days=7)
 one_month_date = latest.name - timedelta(days=30)
 one_week_ago = df.iloc[df.index.get_indexer([one_week_date], method='ffill')[0]]
 one_month_ago = df.iloc[df.index.get_indexer([one_month_date], method='ffill')[0]]
 
-# Timestamp
-data_date = df.index[-1].date()
-cache_time = datetime.now()
-hours_since_data = (cache_time - pd.Timestamp(data_date)).total_seconds() / 3600
-if hours_since_data < 24:
-    freshness = f"Data as of: {data_date} (within 24 hours)"
-else:
-    freshness = f"Data as of: {data_date} ({(hours_since_data/24):.0f} days ago — may be cached)"
-
-# Staleness check
-is_stale = False
-if len(df) >= 2:
-    last_two = df.iloc[-2:]
-    if last_two.index[-1].date() == datetime.now().date():
-        key_cols = ["VIX", "SPY_vs_TLT", "DXY"]
-        if all(abs(last_two.iloc[-1][c] - last_two.iloc[-2][c]) < 0.001 for c in key_cols if pd.notna(last_two.iloc[-1][c])):
-            is_stale = True
-
-st.caption(f"Dashboard: {df.index[0].date()} – {data_date} | Percentiles based on 3-year history | Page loaded: {cache_time.strftime('%Y-%m-%d %H:%M UTC')}")
-if is_stale:
-    st.warning("⚠️ Today's data may not reflect today's close yet. Cache updates every 4 hours or use the refresh button above.")
-
 # ============================================================
-# PERCENTILE CALCULATOR
+# PERCENTILES
 # ============================================================
-def get_percentile(series, value):
+def get_percentile(series, value, higher_is_riskier):
     clean = series.dropna()
+    if len(clean) < 100:
+        return 50, False
     pct = (clean < value).sum() / len(clean) * 100
-    is_extreme = pct < 5 or pct > 95
-    return pct, is_extreme
+    return pct, pct < 5 or pct > 95
 
-def normal_flag(pct, is_extreme):
-    if is_extreme:
-        if pct < 5: return f"🔴 Unusually low (bottom {pct:.0f}%)"
-        else: return f"🔴 Unusually high (top {100-pct:.0f}%)"
-    elif pct < 15 or pct > 85: return f"🟡 Somewhat unusual ({pct:.0f}th %ile)"
-    else: return f"🟢 Normal range ({pct:.0f}th %ile)"
+def normal_flag(pct, extreme):
+    if extreme:
+        return f"🔴 Unusually {'low' if pct < 5 else 'high'} ({pct:.0f}th %ile)"
+    elif pct < 15 or pct > 85:
+        return f"🟡 Somewhat unusual ({pct:.0f}th %ile)"
+    return f"🟢 Normal range ({pct:.0f}th %ile)"
 
-pct_keys = ["VIX","HY_bps","T10Y3M","DXY","SPY_vs_TLT","Copper_vs_Gold",
-            "USDJPY","AUDUSD","EEM_vs_SPY","HYG_vs_LQD","XLY_vs_XLP"]
 pct_data = {}
-for key in pct_keys:
-    if key in hist.columns:
-        pct_data[key] = get_percentile(hist[key], latest[key])
+for key, cfg in INDICATOR_CONFIG.items():
+    if cfg["percentile_window_years"] is not None and key in percentile_source.columns and key in latest.index:
+        val = latest[key]
+        if pd.notna(val):
+            pct_data[key] = get_percentile(percentile_source[key], val, cfg.get("higher_is_riskier", True))
 
 # ============================================================
-# CLASSIFY GAUGE
+# STRESS SCORE
 # ============================================================
-def classify_gauge(name, value, momentum=""):
-    if name == "VIX":
-        if value > 30: return ("🔴 Panic", "#EF4444")
-        elif value > 28: return ("🟠 High caution", "#FB923C")
-        elif value > 20: return ("🟡 Elevated", "#FDE047")
-        elif value < 15: return ("🟢 Very low", "#22C55E")
-        else: return ("🟢 Calm", "#86EFAC")
-    elif name == "HY Spread":
-        if value > 500: return ("🔴 Stress", "#EF4444")
-        elif value > 300: return ("🟡 Moderate", "#FDE047")
-        else: return ("🟢 Low stress", "#22C55E")
-    elif name == "10Y-3M":
-        if value < 0: return ("🔴 Inverted", "#EF4444")
-        elif value < 1.0: return ("🟡 Flattening", "#FDE047")
-        else: return ("🟢 Steep", "#22C55E")
-    elif name == "DXY":
-        if value > 105: return ("🔴 Strong USD", "#EF4444")
-        elif value < 95: return ("🟢 Weak USD", "#22C55E")
-        else: return ("🟡 Neutral", "#FDE047")
-    elif name == "SPY/TLT":
-        if momentum == "rising": return ("🟢 Risk-on", "#22C55E")
-        elif momentum == "falling": return ("🔴 Risk-off", "#EF4444")
-        else: return ("🟡 Neutral", "#FDE047")
-    elif name == "Copper/Gold":
-        if momentum == "rising": return ("🟢 Growth bid", "#22C55E")
-        elif momentum == "falling": return ("🔴 Safety bid", "#EF4444")
-        else: return ("🟡 Neutral", "#FDE047")
-    elif name == "USD/JPY":
-        if momentum == "rising": return ("🟢 Risk-on", "#22C55E")
-        elif momentum == "falling": return ("🔴 Risk-off", "#EF4444")
-        else: return ("🟡 Neutral", "#FDE047")
-    elif name == "AUD/USD":
-        if momentum == "rising": return ("🟢 Risk-on", "#22C55E")
-        elif momentum == "falling": return ("🔴 Risk-off", "#EF4444")
-        else: return ("🟡 Neutral", "#FDE047")
-    return ("⚪ Unknown", "#9CA3AF")
+stress_components = {}
+for key in ["VIX", "HY_bps", "DXY", "T10Y3M"]:
+    if key in pct_data:
+        pct, _ = pct_data[key]
+        cfg = INDICATOR_CONFIG[key]
+        stress_components[key] = pct if cfg["higher_is_riskier"] else 100 - pct
+
+stress_percentile = sum(stress_components.values()) / len(stress_components) if stress_components else 50
+
+one_month_stress = {}
+for key in ["VIX", "HY_bps", "DXY", "T10Y3M"]:
+    if key in percentile_source.columns and key in one_month_ago.index:
+        series = percentile_source[key].dropna()
+        val = one_month_ago[key]
+        if pd.notna(val) and len(series) > 0:
+            pct_1m, _ = get_percentile(series, val, INDICATOR_CONFIG[key].get("higher_is_riskier", True))
+            one_month_stress[key] = pct_1m if INDICATOR_CONFIG[key]["higher_is_riskier"] else 100 - pct_1m
+
+stress_delta = stress_percentile - (sum(one_month_stress.values()) / len(one_month_stress)) if one_month_stress else 0
+if stress_delta < -10:
+    trend_label, trend_icon = "Improving", "🟢"
+elif stress_delta > 10:
+    trend_label, trend_icon = "Deteriorating", "🔴"
+else:
+    trend_label, trend_icon = "Stable", "🟡"
+
+# ============================================================
+# REGIME VOTE
+# ============================================================
+def vote_regime(pct, higher_is_riskier):
+    if pct is None:
+        return "neutral"
+    if higher_is_riskier:
+        return "risk_on" if pct < 40 else ("risk_off" if pct > 60 else "neutral")
+    return "risk_on" if pct > 60 else ("risk_off" if pct < 40 else "neutral")
+
+votes = {"risk_on": 0, "neutral": 0, "risk_off": 0}
+for key, cfg in INDICATOR_CONFIG.items():
+    if cfg.get("votes") and key in pct_data:
+        votes[vote_regime(pct_data[key][0], cfg["higher_is_riskier"])] += 1
+
+if votes["risk_off"] >= max(votes["neutral"], votes["risk_on"]):
+    regime_label, regime_color = "RISK-OFF", "#EF4444"
+elif votes["neutral"] >= votes["risk_on"]:
+    regime_label, regime_color = "NEUTRAL", "#FDE047"
+else:
+    regime_label, regime_color = "RISK-ON", "#22C55E"
+
+if votes["risk_off"] >= 4:
+    regime_intensity = "STRONG"
+elif votes["risk_off"] >= 2 or regime_label == "RISK-OFF":
+    regime_intensity = "MODERATE"
+elif votes["risk_on"] >= 4:
+    regime_intensity = "STRONG"
+elif votes["risk_on"] >= 2 or regime_label == "RISK-ON":
+    regime_intensity = "MODERATE"
+else:
+    regime_intensity = ""
+
+regime_display = f"{regime_intensity} {regime_label}".strip()
+
+# ============================================================
+# WEIGHTED SIGNALS
+# ============================================================
+weighted_warnings, weighted_total = 0, 0
+unweighted_warnings, unweighted_total = 0, 0
+warning_list = []
+
+for key, cfg in INDICATOR_CONFIG.items():
+    if isinstance(cfg["tier"], int) and key in pct_data:
+        pct, _ = pct_data[key]
+        tw = 4 - cfg["tier"]
+        weighted_total += tw
+        unweighted_total += 1
+        is_warning = pct > 85 if cfg["higher_is_riskier"] else pct < 15
+        if is_warning:
+            weighted_warnings += tw
+            unweighted_warnings += 1
+            warning_list.append(f"{'🔴' if tw >= 2 else '🟠'} {key}")
+
+signal_pct = (weighted_warnings / weighted_total * 100) if weighted_total > 0 else 0
 
 # ============================================================
 # CURRENT VALUES
 # ============================================================
-vix_val = latest["VIX"]
-hy_val = latest["HY_bps"]
-yc_val = latest["T10Y3M"]
-dxy_val = latest["DXY"]
-spy_val = latest["SPY_vs_TLT"]
-cg_val = latest["Copper_vs_Gold"]
-usdjpy_val = latest["USDJPY"]
-audusd_val = latest["AUDUSD"]
+def gv(key):
+    return latest[key] if key in latest.index and pd.notna(latest[key]) else None
 
-spy_mom_1m = (spy_val / one_month_ago["SPY_vs_TLT"] - 1) * 100
-spy_dir = "rising" if spy_mom_1m > 1 else ("falling" if spy_mom_1m < -1 else "flat")
-cg_mom_1m = (cg_val / one_month_ago["Copper_vs_Gold"] - 1) * 100
-cg_dir = "rising" if cg_mom_1m > 0.5 else ("falling" if cg_mom_1m < -0.5 else "flat")
-jpy_mom_1m = (usdjpy_val / one_month_ago["USDJPY"] - 1) * 100
-jpy_dir = "rising" if jpy_mom_1m > 1 else ("falling" if jpy_mom_1m < -1 else "flat")
-aud_mom_1m = (audusd_val / one_month_ago["AUDUSD"] - 1) * 100
-aud_dir = "rising" if aud_mom_1m > 0.5 else ("falling" if aud_mom_1m < -0.5 else "flat")
+vix_val, hy_val, yc_val, dxy_val = gv("VIX"), gv("HY_bps"), gv("T10Y3M"), gv("DXY")
+nfci_val, spy_val = gv("NFCI"), gv("SPY_vs_TLT")
+usdjpy_val, cg_val, aud_val = gv("USDJPY"), gv("Copper_vs_Gold"), gv("AUDUSD")
+eem_val, hyg_val, xly_val = gv("EEM_vs_SPY"), gv("HYG_vs_LQD"), gv("XLY_vs_XLP")
+dgs2_val, go_val, walcl_val = gv("DGS2"), gv("Gold_vs_Oil"), gv("WALCL_T")
 
-# ============================================================
-# SIGNAL COUNT
-# ============================================================
-warnings = []
-if vix_val > 28: warnings.append(("VIX elevated", "🔴"))
-if hy_val > 500: warnings.append(("HY spreads wide", "🔴"))
-if yc_val < 0: warnings.append(("Yield curve inverted", "🔴"))
-if dxy_val > 105: warnings.append(("Dollar surging", "🟠"))
-if spy_dir == "falling" and spy_mom_1m < -3: warnings.append(("Defensive rotation", "🟠"))
-if cg_dir == "falling" and cg_mom_1m < -3: warnings.append(("Gold outperforming copper", "🟠"))
-if jpy_dir == "falling" and jpy_mom_1m < -2: warnings.append(("Yen strengthening sharply", "🔴"))
-if aud_dir == "falling" and aud_mom_1m < -2: warnings.append(("AUD weakening notably", "🔴"))
+def get_dir(val, m_ago, up, down):
+    if val is None or m_ago is None or pd.isna(val) or pd.isna(m_ago):
+        return "flat"
+    chg = (val / m_ago - 1) * 100
+    return "rising" if chg > up else ("falling" if chg < -down else "flat")
 
-warning_count = len(warnings)
-total_signals = 8
-
-if warning_count == 0:
-    signal_summary = "🟢 All clear — no warnings active"
-elif warning_count <= 2:
-    signal_summary = f"🟡 {warning_count}/{total_signals} signals warning — modest caution"
-elif warning_count <= 4:
-    signal_summary = f"🟠 {warning_count}/{total_signals} signals warning — elevated caution"
-else:
-    signal_summary = f"🔴 {warning_count}/{total_signals} signals warning — high alert"
-
-signal_note = "FX warnings trigger at ±2% monthly move. Summary shows intermediate caution at ±1%."
+spy_dir = get_dir(spy_val, one_month_ago.get("SPY_vs_TLT"), 1, 1)
+cg_dir = get_dir(cg_val, one_month_ago.get("Copper_vs_Gold"), 0.5, 0.5)
+jpy_dir = get_dir(usdjpy_val, one_month_ago.get("USDJPY"), 1, 1)
+aud_dir = get_dir(aud_val, one_month_ago.get("AUDUSD"), 0.5, 0.5)
 
 # ============================================================
-# REFERENCE SCORE (demoted, VIX/HY/curve/DXY only)
+# REGIME BANNER
 # ============================================================
-def compute_risk_score(vix, hy_bps, yc, dxy):
-    score = 50
-    if vix < 15: score -= 10
-    elif vix < 20: score -= 5
-    elif vix < 25: score += 5
-    elif vix < 30: score += 15
-    else: score += 25
-    if hy_bps < 300: score -= 10
-    elif hy_bps > 500: score += 20
-    elif hy_bps > 400: score += 10
-    if yc < 0: score += 20
-    elif yc < 0.5: score += 5
-    elif yc > 1.5: score -= 10
-    if dxy > 105: score += 15
-    elif dxy > 100: score += 5
-    elif dxy < 95: score -= 10
-    return max(0, min(100, score))
-
-risk_score = compute_risk_score(vix_val, hy_val, yc_val, dxy_val)
+st.markdown(f"""
+<div style="background-color:#F8FAFC;border:2px solid {regime_color};border-radius:12px;padding:16px 24px;margin-bottom:16px;">
+<table style="width:100%;text-align:center;font-size:1.1rem;">
+<tr>
+<td><b>Current Regime</b><br><span style="font-size:1.8rem;font-weight:bold;color:{regime_color};">{regime_display}</span></td>
+<td><b>Stress Percentile</b><br><span style="font-size:1.8rem;font-weight:bold;">{stress_percentile:.0f}th</span></td>
+<td><b>Signals Active</b><br><span style="font-size:1.8rem;font-weight:bold;">{signal_pct:.0f}%</span> <span style="font-size:1rem;">({weighted_warnings}/{weighted_total})</span></td>
+<td><b>Trend</b><br><span style="font-size:1.8rem;">{trend_icon}</span> <span style="font-size:1.2rem;">{trend_label}</span></td>
+</tr>
+</table>
+<p style="text-align:center;margin-top:8px;font-size:0.9rem;color:#666;">
+Vote: Risk-On {votes['risk_on']} | Neutral {votes['neutral']} | Risk-Off {votes['risk_off']}{' | ⚠️ <b>Curve re-steepening from inversion — historically associated with recession onset</b>' if re_steepening else ''}
+</p>
+</div>
+""", unsafe_allow_html=True)
 
 # ============================================================
-# "WHAT CHANGED THIS WEEK" LINE
+# WEEKLY SUMMARY
 # ============================================================
-week_changes = []
-for label, col, verb_up, verb_down in [
-    ("VIX", "VIX", "rose", "fell"),
-    ("credit spreads", "HY_bps", "widened", "tightened"),
-    ("DXY", "DXY", "strengthened", "weakened"),
-    ("SPY/TLT", "SPY_vs_TLT", "rose", "fell"),
-    ("Copper/Gold", "Copper_vs_Gold", "rose", "fell"),
-    ("USD/JPY", "USDJPY", "rose", "fell"),
-    ("AUD/USD", "AUDUSD", "rose", "fell"),
-]:
-    direction = verb_up if latest[col] > one_week_ago[col] else verb_down
-    week_changes.append(f"{label} {direction}")
-
-st.info(f"**📰 This week:** {', '.join(week_changes)}. {signal_summary}.")
+week_parts = []
+for key in ["VIX", "HY_bps", "T10Y3M", "DXY", "NFCI", "SPY_vs_TLT"]:
+    cfg = INDICATOR_CONFIG[key]
+    if key in latest.index and key in one_week_ago.index:
+        cur, prev = latest[key], one_week_ago[key]
+        if pd.notna(cur) and pd.notna(prev):
+            week_parts.append(f"{cfg['summary_label']} {cfg['summary_verb_up'] if cur > prev else cfg['summary_verb_down']}")
+st.info(f"**📰 This week:** {', '.join(week_parts)}. Regime: {regime_display}. Stress: {stress_percentile:.0f}th percentile.")
 
 # ============================================================
-# METRIC CARDS (4x2 grid)
+# CORE METRIC CARDS
 # ============================================================
-st.subheader("📊 Current Snapshot")
-st.caption("Changes: 1-week | 1-month | Normalcy vs 3-year history")
+st.subheader("📊 Core Indicators")
+st.caption("Changes: 1-week | 1-month | Normalcy vs 10-year history")
 
-cols = st.columns(4)
-
-metrics = [
-    ("VIX", vix_val, one_week_ago["VIX"], one_month_ago["VIX"], "VIX", "VIX"),
-    ("HY Spread", hy_val, one_week_ago["HY_bps"], one_month_ago["HY_bps"], "HY_bps", "HY Spread"),
-    ("10Y-3M", yc_val, one_week_ago["T10Y3M"], one_month_ago["T10Y3M"], "T10Y3M", "10Y-3M"),
-    ("DXY", dxy_val, one_week_ago["DXY"], one_month_ago["DXY"], "DXY", "DXY"),
-    ("SPY/TLT", spy_val, one_week_ago["SPY_vs_TLT"], one_month_ago["SPY_vs_TLT"], "SPY_vs_TLT", "SPY/TLT"),
-    ("Cu/Au", cg_val, one_week_ago["Copper_vs_Gold"], one_month_ago["Copper_vs_Gold"], "Copper_vs_Gold", "Copper/Gold"),
-    ("USD/JPY", usdjpy_val, one_week_ago["USDJPY"], one_month_ago["USDJPY"], "USDJPY", "USD/JPY"),
-    ("AUD/USD", audusd_val, one_week_ago["AUDUSD"], one_month_ago["AUDUSD"], "AUDUSD", "AUD/USD"),
+core_specs = [
+    ("VIX", "VIX", vix_val), ("HY_bps", "HY Spread", hy_val), ("T10Y3M", "10Y-3M", yc_val),
+    ("DXY", "DXY", dxy_val), ("NFCI", "NFCI", nfci_val), ("SPY_vs_TLT", "SPY/TLT", spy_val),
 ]
-
-for i, (label, val, w_ago, m_ago, pct_key, gauge_name) in enumerate(metrics):
-    with cols[i % 4]:
-        dw = val - w_ago
-        dm = val - m_ago
-        if label in ("SPY/TLT", "Cu/Au", "AUD/USD", "USD/JPY", "VIX", "DXY"):
-            dw_s = f"{(val/w_ago - 1)*100:+.1f}%"
-            dm_s = f"{(val/m_ago - 1)*100:+.1f}%"
-        elif label == "HY Spread":
-            dw_s = f"{dw:+.0f} bps"
-            dm_s = f"{dm:+.0f} bps"
-        elif label == "10Y-3M":
-            dw_s = f"{dw:+.2f}%"
-            dm_s = f"{dm:+.2f}%"
+cols = st.columns(6)
+for col, (key, label, val) in zip(cols, core_specs):
+    with col:
+        cfg = INDICATOR_CONFIG[key]
+        freq = f" [{cfg['frequency'].capitalize()}]" if cfg["frequency"] != "daily" else ""
+        w = one_week_ago[key] if key in one_week_ago.index else None
+        m = one_month_ago[key] if key in one_month_ago.index else None
+        pct_keys = ["SPY_vs_TLT", "Copper_vs_Gold", "AUDUSD", "USDJPY", "EEM_vs_SPY", "HYG_vs_LQD", "XLY_vs_XLP", "VIX", "DXY"]
+        dw_s = f"{(val/w - 1)*100:+.1f}%" if (val and w and pd.notna(val) and pd.notna(w) and key in pct_keys) else (f"{val - w:+.{cfg['decimals']}f}" if (val and w and pd.notna(val) and pd.notna(w)) else "N/A")
+        dm_s = f"{(val/m - 1)*100:+.1f}%" if (val and m and pd.notna(val) and pd.notna(m) and key in pct_keys) else (f"{val - m:+.{cfg['decimals']}f}" if (val and m and pd.notna(val) and pd.notna(m)) else "N/A")
+        disp = f"{val:.{cfg['decimals']}f}{cfg['unit']}" if val is not None and pd.notna(val) else "N/A"
+        st.metric(f"{label}{freq}", disp, delta=f"{dw_s} | {dm_s}", delta_color="normal")
+        if key in pct_data:
+            pct, ext = pct_data[key]
+            st.caption(normal_flag(pct, ext))
         else:
-            dw_s = f"{dw:+.1f}"
-            dm_s = f"{dm:+.1f}"
-
-        display_val = (f"{val:.0f} bps" if label=="HY Spread"
-                  else (f"{val:.2f}%" if label=="10Y-3M"
-                  else (f"{val:.4f}" if label in ("Cu/Au","AUD/USD")
-                  else (f"{val:.2f}" if label=="SPY/TLT"
-                  else f"{val:.1f}"))))
-
-        st.metric(label, display_val, delta=f"{dw_s} | {dm_s}", delta_color="normal")
-
-        # Classification
-        if gauge_name == "SPY/TLT":
-            cls, cls_col = classify_gauge(gauge_name, val, spy_dir)
-        elif gauge_name == "Copper/Gold":
-            cls, cls_col = classify_gauge(gauge_name, val, cg_dir)
-        elif gauge_name == "USD/JPY":
-            cls, cls_col = classify_gauge(gauge_name, val, jpy_dir)
-        elif gauge_name == "AUD/USD":
-            cls, cls_col = classify_gauge(gauge_name, val, aud_dir)
-        else:
-            cls, cls_col = classify_gauge(gauge_name, val)
-        st.markdown(f"<span style='color:{cls_col};font-size:0.85rem;font-weight:600;'>{cls}</span>",
-                    unsafe_allow_html=True)
-
-        # Normalcy flag
-        if pct_key in pct_data:
-            pct, extreme = pct_data[pct_key]
-            flag_text = normal_flag(pct, extreme)
-            st.caption(flag_text)
+            st.caption("No data")
 
 # ============================================================
-# SIGNAL COUNT + SUMMARY
+# SIGNAL COUNT + STRESS BREAKDOWN
 # ============================================================
 st.divider()
-sig_col, sum_col = st.columns([1, 2])
-
-with sig_col:
-    st.subheader("🚦 Signal Count")
-    st.markdown(f"<h1 style='text-align:center;margin:0;'>{warning_count}<span style='font-size:1.5rem;'>/{total_signals}</span></h1>",
-                unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center;font-weight:bold;font-size:1.1rem;'>{signal_summary}</p>",
-                unsafe_allow_html=True)
-    if warnings:
-        for w_label, w_icon in warnings:
-            st.markdown(f"{w_icon} {w_label}")
-    else:
+sc1, sc2 = st.columns([1, 1])
+with sc1:
+    st.subheader("🚦 Weighted Signals")
+    st.markdown(f"<h1 style='text-align:center;'>{signal_pct:.0f}%<span style='font-size:1.2rem;'> active</span></h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;'>({weighted_warnings}/{weighted_total} weighted | {unweighted_warnings}/{unweighted_total} unweighted)</p>", unsafe_allow_html=True)
+    for w in warning_list:
+        st.markdown(w)
+    if not warning_list:
         st.success("No warning signals active")
-    st.caption(signal_note)
-    st.divider()
-    st.caption(f"Reference score: {risk_score}/100 — composite of VIX, credit spreads, yield curve & DXY only")
-    st.progress(risk_score / 100)
-    with st.expander("📏 How is this score calculated?"):
-        st.markdown("""
-        **Reference score (0–100)** is a composite of 4 core macro stress indicators.
-
-        **What goes in:**
-        - **VIX:** Below 15 = -10pts, 15–20 = -5, 20–25 = +5, 25–30 = +15, above 30 = +25
-        - **HY spreads:** Below 300bps = -10pts, 300–400 = neutral, 400–500 = +10, above 500 = +20
-        - **10Y-3M curve:** Above 1.5% = -10pts, 0.5–1.5% = neutral, 0–0.5% = +5, inverted = +20
-        - **DXY:** Below 95 = -10pts, 95–100 = -5, 100–105 = +5, above 105 = +15
-
-        **How to read it:**
-        - 0–30: Low stress
-        - 30–50: Below average stress
-        - 50–65: Moderate stress
-        - 65–80: Elevated
-        - 80–100: High stress
-
-        The signal count tells you how many things are flashing. This score tells you how loudly.
-        """)
-
-with sum_col:
-    st.subheader("🧠 Summary")
-    signals = []
-    if vix_val > 30: signals.append("🔴 VIX above 30 — extreme fear")
-    elif vix_val > 28: signals.append("🔴 VIX elevated — heightened caution")
-    elif vix_val > 20: signals.append("🟡 VIX moderately elevated")
-    else: signals.append("🟢 VIX in calm range")
-
-    if hy_val > 500: signals.append("🔴 HY spreads >500 bps — significant credit stress")
-    elif hy_val > 400: signals.append("🟡 HY spreads widening — monitor closely")
-    else: signals.append("🟢 Credit spreads contained")
-
-    if yc_val < 0: signals.append("🔴 10Y-3M inverted — recession warning")
-    elif yc_val < 0.5: signals.append("🟡 10Y-3M flattening")
-    else: signals.append("🟢 10Y-3M healthy — normal slope")
-
-    if dxy_val > 105: signals.append("🔴 Dollar surging — tightening conditions")
-    elif dxy_val > 100: signals.append("🟡 Dollar above parity")
-    else: signals.append("🟢 Dollar contained")
-
-    if spy_mom_1m > 3: signals.append("🟢 Stocks leading — risk-on")
-    elif spy_mom_1m < -3: signals.append("🔴 Bonds leading — defensive")
-    else: signals.append("🟡 Equity/bond ratio balanced")
-
-    if cg_mom_1m > 3: signals.append("🟢 Copper outperforming gold — growth optimism")
-    elif cg_mom_1m < -3: signals.append("🔴 Gold outperforming copper — safety demand")
-    else: signals.append("🟡 Copper/Gold ratio stable")
-
-    if jpy_mom_1m > 1: signals.append("🟢 Yen weakening — risk-on flows")
-    elif jpy_mom_1m < -2: signals.append("🔴 Yen strengthening — flight to safety")
-    elif jpy_mom_1m < -1: signals.append("🟡 Yen firming — cautious")
-    else: signals.append("🟡 USD/JPY stable")
-
-    if aud_mom_1m > 1: signals.append("🟢 AUD rising — growth appetite")
-    elif aud_mom_1m < -2: signals.append("🔴 AUD falling — growth concerns")
-    elif aud_mom_1m < -1: signals.append("🟡 AUD soft — watch")
-    else: signals.append("🟡 AUD/USD stable")
-
-    st.markdown(
-        f"""<div style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px 20px;">
-        {"<br>".join(f'<span style="font-size:0.95rem;">{s}</span>' for s in signals)}
-        </div>""",
-        unsafe_allow_html=True
-    )
-
-# ============================================================
-# CHARTS
-# ============================================================
-st.divider()
-chart_col1, chart_col2 = st.columns([3, 1])
-with chart_col1:
-    st.subheader("📈 Trends")
-with chart_col2:
-    date_range = st.selectbox("Timeframe", ["1 month", "3 months", "6 months", "1 year"], index=2)
-
-range_map = {"1 month": 22, "3 months": 66, "6 months": 132, "1 year": 260}
-cutoff = df.index[-1] - timedelta(days=range_map[date_range])
-chart_df = df.loc[cutoff:].copy()
-# Remove weekend rows
-chart_df = chart_df[chart_df.index.dayofweek < 5]
-
-fig = make_subplots(
-    rows=11, cols=1, shared_xaxes=True, vertical_spacing=0.04,
-    subplot_titles=(
-        "① VIX — Fear Index  |  Rising = growing fear",
-        "② High-Yield Spread — Credit stress (bps)  |  Wider = more default risk",
-        "③ 10Y-3M Spread — Yield curve (%)  |  Below zero = recession warning",
-        "④ US Dollar (DXY) — Currency strength  |  Rising = risk-off USD demand",
-        "⑤ SPY / TLT — Stocks vs Bonds  |  Rising = risk-on appetite",
-        "⑥ Copper / Gold — Growth vs Safety  |  Rising = industrial optimism",
-        "⑦ USD/JPY — Safe-haven FX  |  Falling = flight to yen safety",
-        "⑧ AUD/USD — Commodity FX  |  Rising = growth / risk appetite",
-        "⑨ EEM / SPY — Emerging Markets vs S&P 500  |  Rising = capital flowing to EM",
-        "⑩ HYG / LQD — Junk vs IG Bonds  |  Rising = credit risk appetite",
-        "⑪ XLY / XLP — Consumer Disc. vs Staples  |  Rising = cyclical rotation",
-    ),
-    row_heights=[1,1,1,1,1,1,1,1,1,1,1]
-)
-
-panels = [
-    (1, "VIX", "VIX_SMA", "#DC143C", [20,30], ["orange","red"], 2),
-    (2, "HY_bps", "HY_bps_SMA", "#FF8C00", [500], ["red"], 30),
-    (3, "T10Y3M", "T10Y3M_SMA", "#4682B4", [0], ["red"], 0.3),
-    (4, "DXY", "DXY_SMA", "#008080", [100], ["grey"], 1),
-    (5, "SPY_vs_TLT", "SPY_vs_TLT_SMA", "#9370DB", [], [], 0.3),
-    (6, "Copper_vs_Gold", "Copper_vs_Gold_SMA", "#DAA520", [], [], 0.0002),
-    (7, "USDJPY", "USDJPY_SMA", "#C71585", [], [], 3),
-    (8, "AUDUSD", "AUDUSD_SMA", "#228B22", [], [], 0.005),
-    (9, "EEM_vs_SPY", "EEM_vs_SPY_SMA", "#2E86AB", [], [], 0.005),
-    (10, "HYG_vs_LQD", "HYG_vs_LQD_SMA", "#E07B39", [], [], 0.01),
-    (11, "XLY_vs_XLP", "XLY_vs_XLP_SMA", "#6A994E", [], [], 0.02),
-]
-
-for row, col, trend, color, hlines, hcolors, pad in panels:
-    fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[col],
-        line=dict(color=color, width=2.2), name=col, showlegend=(row==1)), row=row, col=1)
-    if trend and trend in chart_df.columns:
-        fig.add_trace(go.Scatter(x=chart_df.index, y=chart_df[trend],
-            line=dict(color="grey", width=1, dash="dash"),
-            name="20-day trend", showlegend=(row==1)), row=row, col=1)
-    for val, hcol in zip(hlines, hcolors):
-        fig.add_hline(y=val, line_dash="dot", line_color=hcol, opacity=0.5, row=row, col=1)
-    vals = chart_df[col].dropna()
-    if len(vals) > 0:
-        fig.update_yaxes(range=[vals.min()-pad, vals.max()+pad], row=row, col=1)
-
-fig.add_hrect(y0=-3, y1=0, line_width=0, fillcolor="red", opacity=0.06, row=3, col=1)
-
-fig.update_layout(
-    height=1700, hovermode="x unified",
-    legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5, font=dict(size=11)),
-    margin=dict(t=60, b=40, l=40, r=40),
-    plot_bgcolor="white", paper_bgcolor="white"
-)
-for i in range(1,12):
-    fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", zeroline=False, row=i, col=1)
-    fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", row=i, col=1)
-
-st.plotly_chart(fig, use_container_width=True)
-
-# ============================================================
-# WEEKEND DEEP-DIVE
-# ============================================================
-with st.expander("🔬 Weekend Deep-Dive — Cross-Asset Snapshot & Regime Analysis"):
-    st.markdown("### 📋 Cross-Asset Snapshot")
-
-    snap_data = []
-    for label, val, w_ago, m_ago in [
-        ("VIX", vix_val, one_week_ago["VIX"], one_month_ago["VIX"]),
-        ("HY Spread (bps)", hy_val, one_week_ago["HY_bps"], one_month_ago["HY_bps"]),
-        ("10Y-3M (%)", yc_val, one_week_ago["T10Y3M"], one_month_ago["T10Y3M"]),
-        ("DXY", dxy_val, one_week_ago["DXY"], one_month_ago["DXY"]),
-        ("SPY/TLT", spy_val, one_week_ago["SPY_vs_TLT"], one_month_ago["SPY_vs_TLT"]),
-        ("Cu/Au", cg_val, one_week_ago["Copper_vs_Gold"], one_month_ago["Copper_vs_Gold"]),
-        ("USD/JPY", usdjpy_val, one_week_ago["USDJPY"], one_month_ago["USDJPY"]),
-        ("AUD/USD", audusd_val, one_week_ago["AUDUSD"], one_month_ago["AUDUSD"]),
-        ("EEM/SPY", latest["EEM_vs_SPY"], one_week_ago["EEM_vs_SPY"], one_month_ago["EEM_vs_SPY"]),
-        ("HYG/LQD", latest["HYG_vs_LQD"], one_week_ago["HYG_vs_LQD"], one_month_ago["HYG_vs_LQD"]),
-        ("XLY/XLP", latest["XLY_vs_XLP"], one_week_ago["XLY_vs_XLP"], one_month_ago["XLY_vs_XLP"]),
-    ]:
-        ch_w = val - w_ago
-        ch_m = val - m_ago
-        if label in ("SPY/TLT", "Cu/Au", "EEM/SPY", "HYG/LQD", "XLY/XLP", "AUD/USD", "USD/JPY", "VIX", "DXY"):
-            ch_w_s = f"{(val/w_ago - 1)*100:+.1f}%"
-            ch_m_s = f"{(val/m_ago - 1)*100:+.1f}%"
-        elif "bps" in label:
-            ch_w_s = f"{ch_w:+.0f} bps"
-            ch_m_s = f"{ch_m:+.0f} bps"
-        elif "%" in label:
-            ch_w_s = f"{ch_w:+.2f}%"
-            ch_m_s = f"{ch_m:+.2f}%"
-        else:
-            ch_w_s = f"{ch_w:+.1f}"
-            ch_m_s = f"{ch_m:+.1f}"
-
-        display = (f"{val:.0f} bps" if "bps" in label
-              else (f"{val:.2f}%" if "%" in label
-              else (f"{val:.2f}" if label=="SPY/TLT"
-              else (f"{val:.4f}" if label in ("Cu/Au","EEM/SPY","HYG/LQD","AUD/USD","XLY/XLP")
-              else f"{val:.1f}"))))
-
-        snap_data.append({"Indicator": label, "Current": display, "1-Week Δ": ch_w_s, "1-Month Δ": ch_m_s})
-
-    st.dataframe(pd.DataFrame(snap_data), use_container_width=True, hide_index=True)
-
-    # Regime description
-    st.markdown("### 📝 Macro Regime Description")
-    regime_parts = []
-    if warning_count == 0:
-        regime_parts.append("We are in a **low-risk, risk-on regime**. No warning signals are active. Markets are calm with broad risk appetite.")
-    elif warning_count <= 2:
-        regime_parts.append("We are in a **mostly benign environment** with isolated concerns. The majority of signals are neutral or risk-on.")
-    elif warning_count <= 4:
-        regime_parts.append("We are in an **elevated caution regime**. Multiple signals warrant attention but no broad panic.")
-    else:
-        regime_parts.append("We are in a **high-alert, risk-off regime**. Multiple stress signals are active across equities, credit, currencies, and bonds.")
-
-    if yc_val < 0:
-        regime_parts.append("The **10Y-3M yield curve is inverted**, the Fed's preferred recession indicator. This has preceded every US recession since 1960 with no false signals.")
-    elif yc_val < 0.5:
-        regime_parts.append("The **10Y-3M curve is flattening**. Not yet inverted, but worth monitoring closely.")
-
-    if vix_val > 25:
-        regime_parts.append("**Equity volatility is elevated**, indicating significant uncertainty.")
-    elif vix_val < 15:
-        regime_parts.append("**Volatility is very low** — while benign, extremely low VIX can signal complacency and vulnerability to shocks.")
-
-    if spy_dir == "rising":
-        regime_parts.append("**Investors are favouring equities over bonds**, a sign of risk appetite and growth expectations.")
-    elif spy_dir == "falling":
-        regime_parts.append("**Investors are favouring bonds over equities**, a defensive rotation suggesting caution.")
-
-    for part in regime_parts:
-        st.markdown(part)
-        st.markdown("")
-
-    # Biggest movers
-    st.markdown("### 📊 Biggest Movers This Week")
-    moves_abs = {}
-    moves_pct = {}
-    for label, val, w_ago, use_abs in [
-        ("HY Spread", hy_val, one_week_ago["HY_bps"], True),
-        ("10Y-3M", yc_val, one_week_ago["T10Y3M"], True),
-        ("VIX", vix_val, one_week_ago["VIX"], False),
-        ("DXY", dxy_val, one_week_ago["DXY"], False),
-        ("USD/JPY", usdjpy_val, one_week_ago["USDJPY"], False),
-        ("SPY/TLT", spy_val, one_week_ago["SPY_vs_TLT"], False),
-        ("Copper/Gold", cg_val, one_week_ago["Copper_vs_Gold"], False),
-        ("AUD/USD", audusd_val, one_week_ago["AUDUSD"], False),
-        ("EEM/SPY", latest["EEM_vs_SPY"], one_week_ago["EEM_vs_SPY"], False),
-        ("HYG/LQD", latest["HYG_vs_LQD"], one_week_ago["HYG_vs_LQD"], False),
-        ("XLY/XLP", latest["XLY_vs_XLP"], one_week_ago["XLY_vs_XLP"], False),
-    ]:
-        pct_change = abs((val/w_ago - 1)*100)
-        direction = "↑" if val > w_ago else "↓"
-        if use_abs:
-            moves_abs[label] = (abs(val - w_ago), direction)
-        else:
-            moves_pct[label] = (pct_change, direction)
-
-    top_abs = sorted(moves_abs.items(), key=lambda x: x[1][0], reverse=True)[:2]
-    top_pct = sorted(moves_pct.items(), key=lambda x: x[1][0], reverse=True)[:2]
-    parts = []
-    for label, (ch, direction) in top_abs:
-        parts.append(f"**{label}** {direction} {ch:.1f}")
-    for label, (ch, direction) in top_pct:
-        parts.append(f"**{label}** {direction} {ch:.1f}%")
-    st.info(f"Top movers this week: {' | '.join(parts)}")
-
-# ============================================================
-# EXPLAINERS + LEGEND
-# ============================================================
-with st.expander("📖 Gauge Explanations & Legend"):
-    st.markdown("### What does each gauge mean?")
-    for gauge_name, explanation in EXPLAINERS.items():
-        st.markdown(f"**{gauge_name}**")
-        st.markdown(f"{explanation}")
-        st.markdown("")
-
-    st.markdown("---")
-    st.markdown("### Threshold Legend")
-    cols = st.columns(3)
-    legend_items = list(GAUGE_LEGENDS.items())
-    for i, (gauge_name, levels) in enumerate(legend_items):
-        with cols[i % 3]:
-            st.markdown(f"**{gauge_name}**")
-            for range_str, meaning, color in levels:
-                st.markdown(
-                    f"<span style='color:{color};font-size:0.9rem;'>{range_str}</span> — {meaning}",
-                    unsafe_allow_html=True
-                )
-            st.markdown("")
-
-# Raw data
-with st.expander("🔍 View raw data (last 30 days)"):
-    st.dataframe(
-        df[["VIX","HY_bps","T10Y3M","DXY","SPY_vs_TLT","Copper_vs_Gold","USDJPY","AUDUSD"]]
-        .tail(30).sort_index(ascending=False).round(2),
-        use_container_width=True
-    )
+with sc2:
+    st.subheader("📏 Stress Percentile")
+    st.markdown(f"<h1 style='text-align:center;'>{stress_percentile:.0f}th</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;'>Trend: {trend_icon} {trend_label} ({stress_delta:+.0f} pts this month)</p>", unsafe_allow_html=True)
+    st.markdown("**Components:**")
+    for k, v in stress_components.items():
+        st.markdown(f"- {k}: {v:.0f}th percentile stress")
+    st.caption("Higher = more stress. Curve inverted so steep = low stress. VIX, HY, DXY, 10Y-3M equally weighted.")
