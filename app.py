@@ -542,4 +542,133 @@ with st.expander("🔬 Weekend Deep-Dive — Cross-Asset Snapshot & Regime Analy
     for label, val, w_ago, m_ago in [
         ("VIX", vix_val, one_week_ago["VIX"], one_month_ago["VIX"]),
         ("HY Spread (bps)", hy_val, one_week_ago["HY_bps"], one_month_ago["HY_bps"]),
-        ("10Y-3M (%)", y
+        ("10Y-3M (%)", yc_val, one_week_ago["T10Y3M"], one_month_ago["T10Y3M"]),
+        ("DXY", dxy_val, one_week_ago["DXY"], one_month_ago["DXY"]),
+        ("SPY/TLT", spy_val, one_week_ago["SPY_vs_TLT"], one_month_ago["SPY_vs_TLT"]),
+        ("Cu/Au", cg_val, one_week_ago["Copper_vs_Gold"], one_month_ago["Copper_vs_Gold"]),
+        ("USD/JPY", usdjpy_val, one_week_ago["USDJPY"], one_month_ago["USDJPY"]),
+        ("AUD/USD", audusd_val, one_week_ago["AUDUSD"], one_month_ago["AUDUSD"]),
+        ("EEM/SPY", latest["EEM_vs_SPY"], one_week_ago["EEM_vs_SPY"], one_month_ago["EEM_vs_SPY"]),
+        ("HYG/LQD", latest["HYG_vs_LQD"], one_week_ago["HYG_vs_LQD"], one_month_ago["HYG_vs_LQD"]),
+        ("XLY/XLP", latest["XLY_vs_XLP"], one_week_ago["XLY_vs_XLP"], one_month_ago["XLY_vs_XLP"]),
+    ]:
+        ch_w = val - w_ago
+        ch_m = val - m_ago
+        if label in ("SPY/TLT", "Cu/Au", "EEM/SPY", "HYG/LQD", "XLY/XLP", "AUD/USD", "USD/JPY", "VIX", "DXY"):
+            ch_w_s = f"{(val/w_ago - 1)*100:+.1f}%"
+            ch_m_s = f"{(val/m_ago - 1)*100:+.1f}%"
+        elif "bps" in label:
+            ch_w_s = f"{ch_w:+.0f} bps"
+            ch_m_s = f"{ch_m:+.0f} bps"
+        elif "%" in label:
+            ch_w_s = f"{ch_w:+.2f}%"
+            ch_m_s = f"{ch_m:+.2f}%"
+        else:
+            ch_w_s = f"{ch_w:+.1f}"
+            ch_m_s = f"{ch_m:+.1f}"
+
+        display = (f"{val:.0f} bps" if "bps" in label
+              else (f"{val:.2f}%" if "%" in label
+              else (f"{val:.2f}" if label=="SPY/TLT"
+              else (f"{val:.4f}" if label in ("Cu/Au","EEM/SPY","HYG/LQD","AUD/USD","XLY/XLP")
+              else f"{val:.1f}"))))
+
+        snap_data.append({"Indicator": label, "Current": display, "1-Week Δ": ch_w_s, "1-Month Δ": ch_m_s})
+
+    st.dataframe(pd.DataFrame(snap_data), use_container_width=True, hide_index=True)
+
+    # Regime description
+    st.markdown("### 📝 Macro Regime Description")
+    regime_parts = []
+    if warning_count == 0:
+        regime_parts.append("We are in a **low-risk, risk-on regime**. No warning signals are active. Markets are calm with broad risk appetite.")
+    elif warning_count <= 2:
+        regime_parts.append("We are in a **mostly benign environment** with isolated concerns. The majority of signals are neutral or risk-on.")
+    elif warning_count <= 4:
+        regime_parts.append("We are in an **elevated caution regime**. Multiple signals warrant attention but no broad panic.")
+    else:
+        regime_parts.append("We are in a **high-alert, risk-off regime**. Multiple stress signals are active across equities, credit, currencies, and bonds.")
+
+    if yc_val < 0:
+        regime_parts.append("The **10Y-3M yield curve is inverted**, the Fed's preferred recession indicator. This has preceded every US recession since 1960 with no false signals.")
+    elif yc_val < 0.5:
+        regime_parts.append("The **10Y-3M curve is flattening**. Not yet inverted, but worth monitoring closely.")
+
+    if vix_val > 25:
+        regime_parts.append("**Equity volatility is elevated**, indicating significant uncertainty.")
+    elif vix_val < 15:
+        regime_parts.append("**Volatility is very low** — while benign, extremely low VIX can signal complacency and vulnerability to shocks.")
+
+    if spy_dir == "rising":
+        regime_parts.append("**Investors are favouring equities over bonds**, a sign of risk appetite and growth expectations.")
+    elif spy_dir == "falling":
+        regime_parts.append("**Investors are favouring bonds over equities**, a defensive rotation suggesting caution.")
+
+    for part in regime_parts:
+        st.markdown(part)
+        st.markdown("")
+
+    # Biggest movers
+    st.markdown("### 📊 Biggest Movers This Week")
+    moves_abs = {}
+    moves_pct = {}
+    for label, val, w_ago, use_abs in [
+        ("HY Spread", hy_val, one_week_ago["HY_bps"], True),
+        ("10Y-3M", yc_val, one_week_ago["T10Y3M"], True),
+        ("VIX", vix_val, one_week_ago["VIX"], False),
+        ("DXY", dxy_val, one_week_ago["DXY"], False),
+        ("USD/JPY", usdjpy_val, one_week_ago["USDJPY"], False),
+        ("SPY/TLT", spy_val, one_week_ago["SPY_vs_TLT"], False),
+        ("Copper/Gold", cg_val, one_week_ago["Copper_vs_Gold"], False),
+        ("AUD/USD", audusd_val, one_week_ago["AUDUSD"], False),
+        ("EEM/SPY", latest["EEM_vs_SPY"], one_week_ago["EEM_vs_SPY"], False),
+        ("HYG/LQD", latest["HYG_vs_LQD"], one_week_ago["HYG_vs_LQD"], False),
+        ("XLY/XLP", latest["XLY_vs_XLP"], one_week_ago["XLY_vs_XLP"], False),
+    ]:
+        pct_change = abs((val/w_ago - 1)*100)
+        direction = "↑" if val > w_ago else "↓"
+        if use_abs:
+            moves_abs[label] = (abs(val - w_ago), direction)
+        else:
+            moves_pct[label] = (pct_change, direction)
+
+    top_abs = sorted(moves_abs.items(), key=lambda x: x[1][0], reverse=True)[:2]
+    top_pct = sorted(moves_pct.items(), key=lambda x: x[1][0], reverse=True)[:2]
+    parts = []
+    for label, (ch, direction) in top_abs:
+        parts.append(f"**{label}** {direction} {ch:.1f}")
+    for label, (ch, direction) in top_pct:
+        parts.append(f"**{label}** {direction} {ch:.1f}%")
+    st.info(f"Top movers this week: {' | '.join(parts)}")
+
+# ============================================================
+# EXPLAINERS + LEGEND
+# ============================================================
+with st.expander("📖 Gauge Explanations & Legend"):
+    st.markdown("### What does each gauge mean?")
+    for gauge_name, explanation in EXPLAINERS.items():
+        st.markdown(f"**{gauge_name}**")
+        st.markdown(f"{explanation}")
+        st.markdown("")
+
+    st.markdown("---")
+    st.markdown("### Threshold Legend")
+    cols = st.columns(3)
+    legend_items = list(GAUGE_LEGENDS.items())
+    for i, (gauge_name, levels) in enumerate(legend_items):
+        with cols[i % 3]:
+            st.markdown(f"**{gauge_name}**")
+            for range_str, meaning, color in levels:
+                st.markdown(
+                    f"<span style='color:{color};font-size:0.9rem;'>{range_str}</span> — {meaning}",
+                    unsafe_allow_html=True
+                )
+            st.markdown("")
+
+# Raw data
+with st.expander("🔍 View raw data (last 30 days)"):
+    st.dataframe(
+        df[["VIX","HY_bps","T10Y3M","DXY","SPY_vs_TLT","Copper_vs_Gold","USDJPY","AUDUSD"]]
+        .tail(30).sort_index(ascending=False).round(2),
+        use_container_width=True
+    )
