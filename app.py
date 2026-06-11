@@ -390,6 +390,7 @@ with sig_col:
     st.subheader("🚦 Signal Count")
     st.markdown(f"<h1 style='text-align:center;margin:0;'>{warning_count}<span style='font-size:1.5rem;'>/{total_signals}</span></h1>",
                 unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;font-weight:bold;font-size:1.1rem;'>{signal_summary}</p>",
                 unsafe_allow_html=True)
     if warnings:
         for w_label, w_icon in warnings:
@@ -400,25 +401,6 @@ with sig_col:
     st.divider()
     st.caption(f"Reference score: {risk_score}/100 — composite of VIX, credit spreads, yield curve & DXY only")
     st.progress(risk_score / 100)
-    with st.expander("📏 How is this score calculated?"):
-        st.markdown("""
-        **Reference score (0–100)** is a composite of 4 core macro stress indicators. It's different from the signal count — this measures *magnitude*, not just direction.
-
-        **What goes in:**
-        - **VIX:** Below 15 = -10pts, 15–20 = -5, 20–25 = +5, 25–30 = +15, above 30 = +25
-        - **HY spreads:** Below 300bps = -10pts, 300–400 = neutral, 400–500 = +10, above 500 = +20
-        - **10Y-3M curve:** Above 1.5% = -10pts, 0.5–1.5% = neutral, 0–0.5% = +5, inverted = +20
-        - **DXY:** Below 95 = -10pts, 95–100 = -5, 100–105 = +5, above 105 = +15
-
-        **How to read it:**
-        - 0–30: Low stress — historically calm conditions
-        - 30–50: Below average stress
-        - 50–65: Moderate stress — warrants attention
-        - 65–80: Elevated — defensive positioning common
-        - 80–100: High stress — crisis-level readings
-
-        **Why a separate score?** The signal count tells you how many things are flashing. This tells you how loudly they're flashing. A yield curve at -0.05% and one at -0.80% both count as 1 signal, but the score captures the difference.
-        """)
 
 with sum_col:
     st.subheader("🧠 Summary")
