@@ -310,7 +310,7 @@ for i, (label, val, w_ago, m_ago, pct_key, gauge_name, col_key) in enumerate(met
     with cols[i % 4]:
         dw = val - w_ago
         dm = val - m_ago
-        if label in ("SPY/TLT", "Cu/Au"):
+        if label in ("SPY/TLT", "Cu/Au", "AUD/USD", "USD/JPY"):
             dw_s = f"{(val/w_ago - 1)*100:+.1f}%"
             dm_s = f"{(val/m_ago - 1)*100:+.1f}%"
         elif label == "HY Spread":
@@ -319,9 +319,6 @@ for i, (label, val, w_ago, m_ago, pct_key, gauge_name, col_key) in enumerate(met
         elif label in ("10Y-3M",):
             dw_s = f"{dw:+.2f}%"
             dm_s = f"{dm:+.2f}%"
-        elif label in ("AUD/USD",):
-            dw_s = f"{dw:+.4f}"
-            dm_s = f"{dm:+.4f}"
         else:
             dw_s = f"{dw:+.1f}"
             dm_s = f"{dm:+.1f}"
