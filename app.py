@@ -74,7 +74,7 @@ EXPLAINERS = {
 # ============================================================
 # LOAD DATA (cached for 12 hours)
 # ============================================================
-@st.cache_data(ttl=43200)
+@st.cache_data(ttl=14400)
 def load_all_data():
     fred_key = os.getenv("FRED_API_KEY")
     if not fred_key:
@@ -119,6 +119,11 @@ def load_all_data():
         df[col+"_SMA"] = df[col].rolling(20).mean()
 
     return df, hist
+
+# Manual refresh button
+if st.button("🔄 Refresh data now (clear cache)"):
+    st.cache_data.clear()
+    st.rerun()
 
 with st.spinner("Loading 5 years of historical data for context..."):
     df, hist = load_all_data()
