@@ -136,7 +136,24 @@ if hours_since_data < 24:
 else:
     freshness = f"Data as of: {data_date} ({(hours_since_data/24):.0f} days ago — may be cached)"
 
+# Check if data is stale (last row is today but values match yesterday)
+is_stale = False
+if len(df) >= 2:
+    last_two = df.iloc[-2:]
+    if last_two.index[-1].date() == datetime.now().date():
+        # Today's row exists — check if it's just yesterday's data copied forward
+        key_cols = ["VIX", "SPY_vs_TLT", "DXY"]
+        if all(abs(last_two.iloc[-1][c] - last_two.iloc[-2][c]) < 0.001 for c in key_cols if pd.notna(last_two.iloc[-1][c])):
+            is_stale = True
+
+if is_stale:
+    stale_warning = "⚠️ Today's data may not reflect today's close yet. Cache updates every 12 hours."
+else:
+    stale_warning = ""
+
 st.caption(f"Dashboard: {df.index[0].date()} – {data_date} | {freshness} | Page loaded: {cache_time.strftime('%Y-%m-%d %H:%M UTC')}")
+if stale_warning:
+    st.warning(stale_warning)
 
 # ============================================================
 # PERCENTILE CALCULATOR
