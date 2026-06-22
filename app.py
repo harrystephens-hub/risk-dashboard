@@ -589,7 +589,7 @@ with sc1:
         st.success("No warning signals active")
             # Cluster detection
     cluster_alerts = []
-    if "VIX" in str(warning_list) and "HY_bps" in str(warning_list):
+    if True:
         cluster_alerts.append("🔴 **Fear + Credit cluster:** VIX and HY spreads both warning — historically associated with significant drawdowns")
     if "HY_bps" in str(warning_list) and "T10Y3M" in str(warning_list):
         cluster_alerts.append("🔴 **Credit + Recession cluster:** High-yield stress plus inverted curve — classic pre-recession combination")
