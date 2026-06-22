@@ -525,7 +525,7 @@ if full_view:
     chart_height = max(800, num_charts * 130)
     fig.update_layout(height=chart_height, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5, font=dict(size=10)),
-        margin=dict(t=60, b=40, l=40, r=40), plot_bgcolor="#0D1117", paper_bgcolor="#0D1117"
+        margin=dict(t=60, b=40, l=40, r=40), plot_bgcolor="#0D1117", paper_bgcolor="#0D1117")
     for i in range(1, num_charts+1):
         fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#21262D", zeroline=False, row=i, col=1)
         fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#21262D", row=i, col=1)
@@ -559,7 +559,7 @@ if full_view:
                 fig2.update_yaxes(range=[vals.min()-pad, vals.max()+pad], row=row, col=1)
         fig2.update_layout(height=max(400, len(deep_keys)*150), hovermode="x unified",
             legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5, font=dict(size=10)),
-            margin=dict(t=60, b=40, l=40, r=40), plot_bgcolor="#0D1117", paper_bgcolor="#0D1117"
+            margin=dict(t=60, b=40, l=40, r=40), plot_bgcolor="#0D1117", paper_bgcolor="#0D1117")
         for i in range(1, len(deep_keys)+1):
             fig2.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#21262D", zeroline=False, row=i, col=1)
             fig2.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#21262D", row=i, col=1)
