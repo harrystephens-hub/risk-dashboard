@@ -518,6 +518,19 @@ aud_dir = get_dir(aud_val, one_month_ago.get("AUDUSD"), 0.5, 0.5)
 # ============================================================
 # REGIME BANNER
 # ============================================================
+# Check for clusters before the banner
+cluster_alerts = []
+if "VIX" in str(warning_list) and "HY_bps" in str(warning_list):
+    cluster_alerts.append("🔴 Fear + Credit cluster: VIX and HY spreads both warning. Historically associated with significant drawdowns.")
+if "HY_bps" in str(warning_list) and "T10Y3M" in str(warning_list):
+    cluster_alerts.append("🔴 Credit + Recession cluster: High-yield stress plus inverted curve. Classic pre-recession combination.")
+if "VIX" in str(warning_list) and "DXY" in str(warning_list):
+    cluster_alerts.append("🟠 Fear + Dollar cluster: VIX elevated while dollar strengthens. Global risk-off environment.")
+if "NFCI" in str(warning_list) and "HY_bps" in str(warning_list):
+    cluster_alerts.append("🟠 Financial conditions + Credit cluster: Tightening conditions plus credit stress. Can create negative feedback loops.")
+if unweighted_warnings >= 4:
+    cluster_alerts.append("🔴 Broad stress: 4+ signals warning simultaneously. Elevated probability of a regime shift.")
+    
 st.markdown(f"""
 <div style="background-color:#161B22;border:1px solid #30363D;;border:2px solid {regime_color};border-radius:12px;padding:16px 24px;margin-bottom:16px;">
 <table style="width:100%;text-align:center;font-size:1.1rem;">
@@ -531,6 +544,7 @@ st.markdown(f"""
 <p style="text-align:center;margin-top:8px;font-size:0.9rem;color:#666;">
 Vote: Risk-On {votes['risk_on']} | Neutral {votes['neutral']} | Risk-Off {votes['risk_off']}{' | ⚠️ <b>Curve re-steepening from inversion — historically associated with recession onset</b>' if re_steepening else ''}
 </p>
+{"".join(f'<div style="background-color:#1A1F2B;border:1px solid #EF4444;border-radius:8px;padding:10px 16px;margin-top:10px;text-align:left;font-size:0.9rem;">⚠️ <b>Cluster Warning:</b> {a}</div>' for a in cluster_alerts)}
 </div>
 """, unsafe_allow_html=True)
 
@@ -585,24 +599,6 @@ with sc1:
     st.markdown(f"<p style='text-align:center;'>({weighted_warnings}/{weighted_total} weighted | {unweighted_warnings}/{unweighted_total} unweighted)</p>", unsafe_allow_html=True)
     for w in warning_list:
         st.markdown(w)
-    # Cluster detection
-    cluster_alerts = []
-    if "VIX" in str(warning_list) and "HY_bps" in str(warning_list):
-        cluster_alerts.append("🔴 **Fear + Credit cluster:** VIX and HY spreads both warning — historically associated with significant drawdowns")
-    if "HY_bps" in str(warning_list) and "T10Y3M" in str(warning_list):
-        cluster_alerts.append("🔴 **Credit + Recession cluster:** High-yield stress plus inverted curve — classic pre-recession combination")
-    if "VIX" in str(warning_list) and "DXY" in str(warning_list):
-        cluster_alerts.append("🟠 **Fear + Dollar cluster:** VIX elevated while dollar strengthens — global risk-off environment")
-    if "NFCI" in str(warning_list) and "HY_bps" in str(warning_list):
-        cluster_alerts.append("🟠 **Financial conditions + Credit cluster:** Tightening conditions plus credit stress — feeds on itself")
-    if unweighted_warnings >= 4:
-        cluster_alerts.append("🔴 **Broad stress:** 4+ signals warning simultaneously — elevated probability of a risk-off regime shift")
-    
-    if cluster_alerts:
-        st.markdown("---")
-        st.markdown("**⚠️ Cluster Warnings (combinations matter more than single signals):**")
-        for alert in cluster_alerts:
-            st.markdown(alert)
             
 with sc2:
     st.subheader("📏 Stress Percentile")
