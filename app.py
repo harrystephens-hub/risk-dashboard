@@ -595,7 +595,7 @@ with sc1:
         cluster_alerts.append("🟠 **Fear + Dollar cluster:** VIX elevated while dollar strengthens — global risk-off environment")
     if "NFCI" in str(warning_list) and "HY_bps" in str(warning_list):
         cluster_alerts.append("🟠 **Financial conditions + Credit cluster:** Tightening conditions plus credit stress — feeds on itself")
-    if warning_count >= 4:
+    if unweighted_warnings >= 4:
         cluster_alerts.append("🔴 **Broad stress:** 4+ signals warning simultaneously — elevated probability of a risk-off regime shift")
     
     if cluster_alerts:
