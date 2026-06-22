@@ -173,6 +173,39 @@ st.markdown("""
         background-color: #0D1117 !important;
         color: #C9D1D9 !important;
         font-family: 'JetBrains Mono', monospace !important;
+    }    /* Force all expander states to dark */
+    section[data-testid="stSidebar"] [data-testid="stExpander"] details,
+    [data-testid="stExpander"] details {
+        background-color: #161B22 !important;
+        border: 1px solid #30363D !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stExpander"] summary {
+        background-color: #161B22 !important;
+        color: #E6EDF3 !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stExpander"] summary:hover {
+        background-color: #1C2333 !important;
+        color: #FFFFFF !important;
+    }
+    [data-testid="stExpander"] details[open] summary {
+        background-color: #161B22 !important;
+        border-bottom: 1px solid #30363D !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+    
+    /* Force all tables to dark */
+    table {
+        background-color: #0D1117 !important;
+    }
+    th {
+        background-color: #161B22 !important;
+        color: #8B949E !important;
+    }
+    td {
+        background-color: #0D1117 !important;
+        color: #C9D1D9 !important;
     }
 </style>
 """, unsafe_allow_html=True)
