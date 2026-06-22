@@ -587,6 +587,24 @@ with sc1:
         st.markdown(w)
     if not warning_list:
         st.success("No warning signals active")
+            # Cluster detection
+    cluster_alerts = []
+    if "VIX" in str(warning_list) and "HY_bps" in str(warning_list):
+        cluster_alerts.append("🔴 **Fear + Credit cluster:** VIX and HY spreads both warning — historically associated with significant drawdowns")
+    if "HY_bps" in str(warning_list) and "T10Y3M" in str(warning_list):
+        cluster_alerts.append("🔴 **Credit + Recession cluster:** High-yield stress plus inverted curve — classic pre-recession combination")
+    if "VIX" in str(warning_list) and "DXY" in str(warning_list):
+        cluster_alerts.append("🟠 **Fear + Dollar cluster:** VIX elevated while dollar strengthens — global risk-off environment")
+    if "NFCI" in str(warning_list) and "HY_bps" in str(warning_list):
+        cluster_alerts.append("🟠 **Financial conditions + Credit cluster:** Tightening conditions plus credit stress — feeds on itself")
+    if warning_count >= 4:
+        cluster_alerts.append("🔴 **Broad stress:** 4+ signals warning simultaneously — elevated probability of a risk-off regime shift")
+    
+    if cluster_alerts:
+        st.markdown("---")
+        st.markdown("**⚠️ Cluster Warnings (combinations matter more than single signals):**")
+        for alert in cluster_alerts:
+            st.markdown(alert)
 with sc2:
     st.subheader("📏 Stress Percentile")
     st.markdown(f"<h1 style='text-align:center;'>{stress_percentile:.0f}th</h1>", unsafe_allow_html=True)
