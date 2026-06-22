@@ -34,6 +34,118 @@ INDICATOR_CONFIG = {
 # PAGE SETUP
 # ============================================================
 st.set_page_config(page_title="Global Risk Dashboard", page_icon="🌍", layout="wide")
+# ============================================================
+# CUSTOM CSS — DARK THEME
+# ============================================================
+st.markdown("""
+<style>
+    /* Import monospace font */
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    /* Global */
+    .stApp {
+        background-color: #0D1117;
+    }
+    body, p, span, div, li, caption {
+        color: #C9D1D9;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    h1, h2, h3, h4 {
+        font-family: 'JetBrains Mono', monospace;
+        color: #E6EDF3;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+
+    /* Metric cards */
+    [data-testid="stMetric"] {
+        background-color: #161B22;
+        border: 1px solid #30363D;
+        border-radius: 8px;
+        padding: 12px 16px;
+    }
+    [data-testid="stMetric"] label {
+        color: #8B949E !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.8rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    [data-testid="stMetricValue"] {
+        color: #E6EDF3 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 1.5rem !important;
+        font-weight: 600;
+    }
+    [data-testid="stMetricDelta"] {
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Info/warning/success boxes */
+    .stAlert {
+        background-color: #161B22;
+        border: 1px solid #30363D;
+        border-radius: 8px;
+        color: #C9D1D9;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Buttons */
+    .stButton button {
+        background-color: #238636;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 500;
+    }
+    .stButton button:hover {
+        background-color: #2EA043;
+    }
+
+    /* Radio buttons */
+    .stRadio label {
+        color: #8B949E !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+
+    /* Expanders */
+    .streamlit-expanderHeader {
+        background-color: #161B22;
+        border: 1px solid #30363D;
+        border-radius: 8px;
+        color: #E6EDF3;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Dataframes */
+    [data-testid="stDataFrame"] {
+        background-color: #161B22;
+        border: 1px solid #30363D;
+        border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Captions */
+    .stCaption {
+        color: #8B949E !important;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+    }
+
+    /* Dividers */
+    hr {
+        border-color: #30363D;
+    }
+
+    /* Select box */
+    .stSelectbox label {
+        color: #8B949E !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 view_mode = st.radio("🔍 View", ["Quick View", "Full Dashboard"], horizontal=True, index=0)
 full_view = view_mode == "Full Dashboard"
 st.title("🌍 Global Risk & Capital Flow Dashboard")
