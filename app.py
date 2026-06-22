@@ -350,7 +350,6 @@ if full_view:
             sec_specs.append((key, label, val))
 
     cols2 = st.columns(len(sec_specs))
-    pct_keys_list = ["SPY_vs_TLT", "Copper_vs_Gold", "AUDUSD", "USDJPY", "EEM_vs_SPY", "HYG_vs_LQD", "XLY_vs_XLP", "VIX", "DXY"]
     for col, (key, label, val) in zip(cols2, sec_specs):
         with col:
             cfg = INDICATOR_CONFIG[key]
