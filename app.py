@@ -57,7 +57,7 @@ def load_all_data():
     today = datetime.today()
     hist_start = today - timedelta(days=10*365)
 
-    tickers = {"VIX": "^VIX", "SPY": "SPY", "TLT": "TLT", "EEM": "EEM", "HYG": "HYG", "LQD": "LQD", "DXY": "DX-Y.NYB", "Copper": "HG=F", "Gold": "GC=F", "Oil": "CL=F", "USDJPY": "JPY=X", "AUDUSD": "AUDUSD=X", "XLY": "XLY", "XLP": "XLP"}
+        tickers = {"VIX": "^VIX", "SPY": "SPY", "TLT": "TLT", "EEM": "EEM", "HYG": "HYG", "LQD": "LQD", "DXY": "DX-Y.NYB", "Copper": "HG=F", "Gold": "GC=F", "Oil": "CL=F", "USDJPY": "JPY=X", "AUDUSD": "AUDUSD=X", "XLY": "XLY", "XLP": "XLP", "MOVE": "^MOVE"}
     yf_hist = yf.download(list(tickers.values()), start=hist_start, end=today, progress=False)["Close"]
     yf_hist = yf_hist.rename(columns={v: k for k, v in tickers.items()})
 
