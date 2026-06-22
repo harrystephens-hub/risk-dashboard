@@ -366,13 +366,13 @@ if full_view:
                 st.caption("No data")
 
 # ============================================================
-# CHARTS (Full View only)
+# CHARTS — CORE + SECONDARY (Full View only)
 # ============================================================
 if full_view:
     st.divider()
     cc1, cc2 = st.columns([3, 1])
     with cc1:
-        st.subheader("📈 Trends")
+        st.subheader("📈 Core & Secondary Trends")
     with cc2:
         date_range = st.selectbox("Timeframe", ["1 month", "3 months", "6 months", "1 year"], index=2)
 
@@ -381,8 +381,7 @@ if full_view:
     chart_df = df.loc[cutoff:].copy()
     chart_df = chart_df[chart_df.index.dayofweek < 5]
 
-    # Only chart indicators that exist in the dataframe
-    chart_keys = [k for k in INDICATOR_CONFIG.keys() if k in chart_df.columns]
+    chart_keys = [k for k, cfg in INDICATOR_CONFIG.items() if cfg["tier"] != "deep_dive" and k in chart_df.columns]
     num_charts = len(chart_keys)
 
     fig = make_subplots(
@@ -407,7 +406,6 @@ if full_view:
             pad = (vals.max() - vals.min()) * 0.15 or 1
             fig.update_yaxes(range=[vals.min()-pad, vals.max()+pad], row=row, col=1)
 
-    # Yield curve red zone — find which row is T10Y3M
     if "T10Y3M" in chart_keys:
         yc_row = chart_keys.index("T10Y3M") + 1
         fig.add_hrect(y0=-3, y1=0, line_width=0, fillcolor="red", opacity=0.06, row=yc_row, col=1)
@@ -423,6 +421,41 @@ if full_view:
     st.plotly_chart(fig, width='stretch')
 
     # ============================================================
+    # CHARTS — DEEP-DIVE
+    # ============================================================
+    st.divider()
+    st.subheader("🔬 Deep-Dive Indicators")
+    deep_keys = [k for k, cfg in INDICATOR_CONFIG.items() if cfg["tier"] == "deep_dive" and k in chart_df.columns]
+    if deep_keys:
+        fig2 = make_subplots(
+            rows=len(deep_keys), cols=1, shared_xaxes=True, vertical_spacing=0.05,
+            subplot_titles=[f"{INDICATOR_CONFIG[k]['question']}" for k in deep_keys],
+            row_heights=[1]*len(deep_keys)
+        )
+        for i, key in enumerate(deep_keys):
+            row = i + 1
+            cfg = INDICATOR_CONFIG[key]
+            fig2.add_trace(go.Scatter(x=chart_df.index, y=chart_df[key],
+                line=dict(color=cfg["color"], width=2), name=key, showlegend=(row==1)), row=row, col=1)
+            sma_col = key + "_SMA"
+            if sma_col in chart_df.columns:
+                fig2.add_trace(go.Scatter(x=chart_df.index, y=chart_df[sma_col],
+                    line=dict(color="grey", width=1, dash="dash"), name="20d trend", showlegend=(row==1)), row=row, col=1)
+            vals = chart_df[key].dropna()
+            if len(vals) > 0:
+                pad = (vals.max() - vals.min()) * 0.15 or 1
+                fig2.update_yaxes(range=[vals.min()-pad, vals.max()+pad], row=row, col=1)
+        fig2.update_layout(height=max(400, len(deep_keys)*150), hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="center", x=0.5, font=dict(size=10)),
+            margin=dict(t=60, b=40, l=40, r=40), plot_bgcolor="white", paper_bgcolor="white")
+        for i in range(1, len(deep_keys)+1):
+            fig2.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", zeroline=False, row=i, col=1)
+            fig2.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", row=i, col=1)
+        st.plotly_chart(fig2, width='stretch')
+    else:
+        st.info("No deep-dive data available yet. These indicators may require a full data refresh.")
+
+    # ============================================================
     # WEEKEND DEEP-DIVE
     # ============================================================
     with st.expander("🔬 Weekend Deep-Dive — Cross-Asset Snapshot & Regime Analysis"):
@@ -434,7 +467,7 @@ if full_view:
             ("USDJPY", "USD/JPY", usdjpy_val), ("Copper_vs_Gold", "Cu/Au", cg_val),
             ("AUDUSD", "AUD/USD", aud_val),
         ]
-        for key, label, val in [("EEM_vs_SPY", "EEM/SPY", eem_val), ("HYG_vs_LQD", "HYG/LQD", hyg_val), ("XLY_vs_XLP", "XLY/XLP", xly_val), ("DGS2", "2Y Yield", dgs2_val), ("Gold_vs_Oil", "Gold/Oil", go_val), ("WALCL_T", "Fed Balance Sheet", walcl_val)]:
+        for key, label, val in [("EEM_vs_SPY", "EEM/SPY", eem_val), ("HYG_vs_LQD", "HYG/LQD", hyg_val), ("XLY_vs_XLP", "XLY/XLP", xly_val), ("DGS2", "2Y Yield", dgs2_val), ("Gold_vs_Oil", "Gold/Oil", go_val), ("MOVE", "MOVE", gv("MOVE")), ("WALCL_T", "Fed Balance Sheet", walcl_val)]:
             if val is not None:
                 deep_specs.append((key, label, val))
 
@@ -469,7 +502,7 @@ if full_view:
             st.markdown(f"**Low stress ({stress_percentile:.0f}th percentile).** Conditions notably calmer than 10-year average.")
 
         st.markdown("### ⏱ Data Frequency Notes")
-        st.markdown("- **Daily:** VIX, HY Spread, 10Y-3M, DXY, SPY/TLT, USD/JPY, AUD/USD, Copper/Gold, EEM/SPY, HYG/LQD, XLY/XLP, 2Y Yield, Gold/Oil")
+        st.markdown("- **Daily:** VIX, HY Spread, 10Y-3M, DXY, SPY/TLT, USD/JPY, AUD/USD, Copper/Gold, EEM/SPY, HYG/LQD, XLY/XLP, 2Y Yield, Gold/Oil, MOVE")
         st.markdown("- **Weekly (Wed):** NFCI — updated once per week")
         st.markdown("- **Weekly (Thu):** Fed Balance Sheet — updated once per week")
         st.markdown("Weekly indicators may appear stale between updates. This is expected behaviour.")
