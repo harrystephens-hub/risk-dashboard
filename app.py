@@ -670,7 +670,7 @@ if full_view:
             snap.append({"Indicator": label, "Current": disp, "1-Week": ch_w_s, "1-Month": ch_m_s})
             st.markdown('<div style="background-color:#0D1117; padding: 10px; border-radius: 8px;">', unsafe_allow_html=True)
         st.dataframe(pd.DataFrame(snap), width='stretch', hide_index=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown("### 📝 Macro Regime Description")
         if regime_label == "RISK-ON":
