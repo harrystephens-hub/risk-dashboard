@@ -231,6 +231,10 @@ with st.expander("ℹ️ About this dashboard"):
     **Architecture:** 6 core indicators vote on regime (majority wins, ties break conservative). Stress percentile uses 10-year ranks with directional consistency. Weighted signals use a 3/2/1 tier system. Secondary indicators confirm but don't vote. Deep-dive indicators provide additional context.
     """)
     with st.expander("📖 How to read this dashboard (beginner's guide)"):
+
+
+
+        
     st.markdown("""
     ### Quick Start (60 seconds)
     
