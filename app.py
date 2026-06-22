@@ -206,6 +206,39 @@ st.markdown("""
     td {
         background-color: #0D1117 !important;
         color: #C9D1D9 !important;
+    }    /* Nuclear option — force all dataframe elements dark */
+    div[data-testid="stDataFrame"] {
+        background-color: #0D1117 !important;
+    }
+    div[data-testid="stDataFrame"] div {
+        background-color: #0D1117 !important;
+    }
+    div[data-testid="stDataFrame"] table {
+        background-color: #0D1117 !important;
+    }
+    div[data-testid="stDataFrame"] thead tr th {
+        background-color: #161B22 !important;
+        color: #8B949E !important;
+        border-bottom: 1px solid #30363D !important;
+    }
+    div[data-testid="stDataFrame"] tbody tr td {
+        background-color: #0D1117 !important;
+        color: #C9D1D9 !important;
+    }
+    div[data-testid="stDataFrame"] tbody tr:nth-child(even) td {
+        background-color: #12171F !important;
+    }
+    /* Also target the styled dataframe container */
+    [data-testid="stTable"] {
+        background-color: #0D1117 !important;
+    }
+    [data-testid="stTable"] th {
+        background-color: #161B22 !important;
+        color: #8B949E !important;
+    }
+    [data-testid="stTable"] td {
+        background-color: #0D1117 !important;
+        color: #C9D1D9 !important;
     }
 </style>
 """, unsafe_allow_html=True)
