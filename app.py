@@ -419,7 +419,7 @@ if full_view:
         fig.update_yaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", zeroline=False, row=i, col=1)
         fig.update_xaxes(showgrid=True, gridwidth=0.5, gridcolor="#EEE", row=i, col=1)
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     # ============================================================
     # WEEKEND DEEP-DIVE
@@ -448,7 +448,7 @@ if full_view:
             ch_m_s = f"{(val/m - 1)*100:+.1f}%" if (val is not None and m is not None and pd.notna(val) and pd.notna(m) and key in pct_keys_snap) else (f"{val - m:+.{cfg.get('decimals', 1)}f}{cfg.get('unit', '')}" if (val is not None and m is not None and pd.notna(val) and pd.notna(m)) else "N/A")
             disp = f"{val:.{cfg.get('decimals', 1)}f}{cfg.get('unit', '')}"
             snap.append({"Indicator": label, "Current": disp, "1-Week": ch_w_s, "1-Month": ch_m_s})
-        st.dataframe(pd.DataFrame(snap), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(snap), width='stretch', hide_index=True)
 
         st.markdown("### 📝 Macro Regime Description")
         if regime_label == "RISK-ON":
@@ -499,4 +499,4 @@ with st.expander("📖 Gauge Explanations & Threshold Legend"):
 # ============================================================
 with st.expander("🔍 View raw data (last 30 days)"):
     raw_cols = [k for k in INDICATOR_CONFIG.keys() if k in df.columns]
-    st.dataframe(df[raw_cols].tail(30).sort_index(ascending=False).round(3), use_container_width=True)
+    st.dataframe(df[raw_cols].tail(30).sort_index(ascending=False).round(3), width='stretch')
