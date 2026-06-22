@@ -144,6 +144,36 @@ st.markdown("""
         color: #8B949E !important;
         font-family: 'JetBrains Mono', monospace !important;
     }
+    /* Expander header — keep dark when open */
+    .streamlit-expanderHeader:hover {
+        background-color: #1C2333 !important;
+        color: #E6EDF3 !important;
+    }
+    .streamlit-expanderHeader[aria-expanded="true"] {
+        background-color: #161B22 !important;
+        color: #E6EDF3 !important;
+        border-bottom: 1px solid #30363D;
+    }
+    
+    /* Expander content area */
+    .streamlit-expanderContent {
+        background-color: #0D1117 !important;
+        border: 1px solid #30363D;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+    }
+    
+    /* Table headers and cells */
+    [data-testid="stDataFrame"] th {
+        background-color: #161B22 !important;
+        color: #8B949E !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+    [data-testid="stDataFrame"] td {
+        background-color: #0D1117 !important;
+        color: #C9D1D9 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 view_mode = st.radio("🔍 View", ["Quick View", "Full Dashboard"], horizontal=True, index=0)
