@@ -325,7 +325,7 @@ with sc2:
     st.subheader("📏 Stress Percentile")
     st.markdown(f"<h1 style='text-align:center;'>{stress_percentile:.0f}th</h1>", unsafe_allow_html=True)
     delta_display = f"{stress_delta:+.0f} pts this month" if abs(stress_delta) >= 1 else "unchanged this month"
-st.markdown(f"<p style='text-align:center;'>Trend: {trend_icon} {trend_label} ({delta_display})</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;'>Trend: {trend_icon} {trend_label} ({delta_display})</p>", unsafe_allow_html=True)
     st.markdown("**Components:**")
     for k, v in stress_components.items():
         st.markdown(f"- {k}: {v:.0f}th percentile stress")
