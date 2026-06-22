@@ -585,9 +585,7 @@ with sc1:
     st.markdown(f"<p style='text-align:center;'>({weighted_warnings}/{weighted_total} weighted | {unweighted_warnings}/{unweighted_total} unweighted)</p>", unsafe_allow_html=True)
     for w in warning_list:
         st.markdown(w)
-    if not warning_list:
-        st.success("No warning signals active")
-            # Cluster detection
+    # Cluster detection
     cluster_alerts = []
     if "VIX" in str(warning_list) and "HY_bps" in str(warning_list):
         cluster_alerts.append("🔴 **Fear + Credit cluster:** VIX and HY spreads both warning — historically associated with significant drawdowns")
@@ -605,6 +603,7 @@ with sc1:
         st.markdown("**⚠️ Cluster Warnings (combinations matter more than single signals):**")
         for alert in cluster_alerts:
             st.markdown(alert)
+            
 with sc2:
     st.subheader("📏 Stress Percentile")
     st.markdown(f"<h1 style='text-align:center;'>{stress_percentile:.0f}th</h1>", unsafe_allow_html=True)
