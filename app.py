@@ -520,7 +520,7 @@ aud_dir = get_dir(aud_val, one_month_ago.get("AUDUSD"), 0.5, 0.5)
 # ============================================================
 # Check for clusters before the banner
 cluster_alerts = []
-if True:
+if "VIX" in str(warning_list) and "HY_bps" in str(warning_list):
     cluster_alerts.append("🔴 Fear + Credit cluster: VIX and HY spreads both warning. Historically associated with significant drawdowns.")
 if "HY_bps" in str(warning_list) and "T10Y3M" in str(warning_list):
     cluster_alerts.append("🔴 Credit + Recession cluster: High-yield stress plus inverted curve. Classic pre-recession combination.")
