@@ -234,56 +234,56 @@ with st.expander("📖 How to read this dashboard (beginner's guide)"):
     st.markdown("""
 ### Quick Start (60 seconds)
 
-**1. Regime Banner (5 sec)** — Top of the page. Tells you the big picture.
+**1. Regime Banner (5 sec)** -- Top of the page. Tells you the big picture.
 - 🟢 **RISK-ON** = markets confident, good time for growth assets
 - 🟡 **NEUTRAL** = mixed signals, no strong direction
 - 🔴 **RISK-OFF** = markets fearful, defensive environment
 
-**2. Signal Count (5 sec)** — Right below the banner.
+**2. Signal Count (5 sec)** -- Right below the banner.
 - **0-20% active** = calm, few concerns
 - **20-40%** = some warnings, pay attention
 - **40%+** = elevated caution
 
-**3. Trend (next to it)** — Is the situation getting better or worse?
+**3. Trend (next to it)** -- Is the situation getting better or worse?
 - 🟢 Improving = stress decreasing
 - 🟡 Stable = no change
 - 🔴 Deteriorating = stress increasing
 
-**4. Weekly Summary (10 sec)** — The info box tells you what moved this week in plain English.
+**4. Weekly Summary (10 sec)** -- The info box tells you what moved this week in plain English.
 
-**5. Core Cards (15 sec)** — Six key indicators. Look for anything flagged 🔴.
+**5. Core Cards (15 sec)** -- Six key indicators. Look for anything flagged 🔴.
 
 ---
 
 ### Understanding Each Core Indicator
 
-**VIX — Fear Index**
+**VIX -- Fear Index**
 - *What it is:* How much investors are paying to protect against market drops. Higher = more fear.
 - *What to look for:* Below 20 is calm. Above 28 is worrying. Above 30 is panic.
 - *Real-world example:* VIX hit 82 during the COVID crash in March 2020.
 
-**HY Spread — Credit Stress**
+**HY Spread -- Credit Stress**
 - *What it is:* Extra yield risky companies pay to borrow vs safe government debt. Wider = more stress.
 - *What to look for:* Below 300 bps is calm. Above 500 bps means bond markets are worried about defaults.
 - *Why it matters:* Credit markets often sense trouble before stock markets do.
 
-**10Y-3M — Yield Curve**
+**10Y-3M -- Yield Curve**
 - *What it is:* Difference between long-term and short-term interest rates on US government bonds.
 - *What to look for:* Above 0 is normal. Below 0 (inverted) = recession warning.
 - *Why it matters:* An inverted curve has preceded every US recession since 1960.
 - *Important:* The warning can come 6-24 months before any recession. It's a regime signal, not a crash predictor.
 
-**DXY — US Dollar**
+**DXY -- US Dollar**
 - *What it is:* How strong the US dollar is vs other major currencies.
 - *What to look for:* Above 105 = strong dollar, tightening global conditions. Below 95 = weak dollar, supportive for risk.
 - *Why it matters:* A surging dollar hurts emerging markets, commodities, and US companies that sell abroad.
 
-**NFCI — Financial Conditions**
+**NFCI -- Financial Conditions**
 - *What it is:* A broad measure of how easy or tight money and credit conditions are.
 - *What to look for:* Above 0 = conditions tightening (harder to borrow). Below 0 = conditions loose (easier).
 - *Why it matters:* Tight financial conditions slow the economy. This updates weekly, not daily.
 
-**SPY/TLT — Stocks vs Bonds**
+**SPY/TLT -- Stocks vs Bonds**
 - *What it is:* Are investors choosing stocks (risk) or bonds (safety)?
 - *What to look for:* Rising = stocks winning (risk-on). Falling = bonds winning (risk-off).
 - *Why it matters:* This is the purest measure of risk appetite on the dashboard.
@@ -293,9 +293,9 @@ with st.expander("📖 How to read this dashboard (beginner's guide)"):
 ### How the Regime Is Decided
 
 Each of the 6 core indicators gets one vote based on where it sits vs its 10-year history:
-- If it's in the riskiest 40% of historical readings → votes **Risk-Off**
-- If it's in the safest 40% → votes **Risk-On**
-- Middle 20% → votes **Neutral**
+- If it's in the riskiest 40% of historical readings, votes **Risk-Off**
+- If it's in the safest 40%, votes **Risk-On**
+- Middle 20% votes **Neutral**
 
 Majority wins. Ties go to the more conservative label (Risk-Off beats Neutral beats Risk-On).
 
@@ -304,88 +304,11 @@ Majority wins. Ties go to the more conservative label (Risk-Off beats Neutral be
 ### Practical Tips
 
 - **You don't need to check every number.** The regime banner and signal count give you 80% of the picture in 10 seconds.
-- **One red flag isn't a crisis.** Look for clusters — when VIX, credit spreads, and the yield curve all flash warnings together, that's significant.
+- **One red flag isn't a crisis.** Look for clusters -- when VIX, credit spreads, and the yield curve all flash warnings together, that's significant.
 - **Regimes persist.** Risk-on or risk-off conditions can last months. Don't expect daily changes.
 - **This is a map, not a crystal ball.** It tells you what environment we're in. It doesn't predict tomorrow's market move.
 - **Use the timeframe selector** on the charts (1M/3M/6M/1Y) to zoom in or out depending on whether you're checking this week or studying the bigger trend.
 """)
-    ### Quick Start (60 seconds)
-    
-    **1. Regime Banner (5 sec)** — Top of the page. Tells you the big picture.
-    - 🟢 **RISK-ON** = markets confident, good time for growth assets
-    - 🟡 **NEUTRAL** = mixed signals, no strong direction
-    - 🔴 **RISK-OFF** = markets fearful, defensive environment
-    
-    **2. Signal Count (5 sec)** — Right below the banner.
-    - **0-20% active** = calm, few concerns
-    - **20-40%** = some warnings, pay attention
-    - **40%+** = elevated caution
-    
-    **3. Trend (next to it)** — Is the situation getting better or worse?
-    - 🟢 Improving = stress decreasing
-    - 🟡 Stable = no change
-    - 🔴 Deteriorating = stress increasing
-    
-    **4. Weekly Summary (10 sec)** — The info box tells you what moved this week in plain English.
-    
-    **5. Core Cards (15 sec)** — Six key indicators. Look for anything flagged 🔴.
-    
-    ---
-    
-    ### Understanding Each Core Indicator
-    
-    **VIX — Fear Index**
-    - *What it is:* How much investors are paying to protect against market drops. Higher = more fear.
-    - *What to look for:* Below 20 is calm. Above 28 is worrying. Above 30 is panic.
-    - *Real-world example:* VIX hit 82 during the COVID crash in March 2020.
-    
-    **HY Spread — Credit Stress**
-    - *What it is:* Extra yield risky companies pay to borrow vs safe government debt. Wider = more stress.
-    - *What to look for:* Below 300 bps is calm. Above 500 bps means bond markets are worried about defaults.
-    - *Why it matters:* Credit markets often sense trouble before stock markets do.
-    
-    **10Y-3M — Yield Curve**
-    - *What it is:* Difference between long-term and short-term interest rates on US government bonds.
-    - *What to look for:* Above 0 is normal. Below 0 (inverted) = recession warning.
-    - *Why it matters:* An inverted curve has preceded every US recession since 1960.
-    - *Important:* The warning can come 6-24 months before any recession. It's a regime signal, not a crash predictor.
-    
-    **DXY — US Dollar**
-    - *What it is:* How strong the US dollar is vs other major currencies.
-    - *What to look for:* Above 105 = strong dollar, tightening global conditions. Below 95 = weak dollar, supportive for risk.
-    - *Why it matters:* A surging dollar hurts emerging markets, commodities, and US companies that sell abroad.
-    
-    **NFCI — Financial Conditions**
-    - *What it is:* A broad measure of how easy or tight money and credit conditions are.
-    - *What to look for:* Above 0 = conditions tightening (harder to borrow). Below 0 = conditions loose (easier).
-    - *Why it matters:* Tight financial conditions slow the economy. This updates weekly, not daily.
-    
-    **SPY/TLT — Stocks vs Bonds**
-    - *What it is:* Are investors choosing stocks (risk) or bonds (safety)?
-    - *What to look for:* Rising = stocks winning (risk-on). Falling = bonds winning (risk-off).
-    - *Why it matters:* This is the purest measure of risk appetite on the dashboard.
-    
-    ---
-    
-    ### How the Regime Is Decided
-    
-    Each of the 6 core indicators gets one vote based on where it sits vs its 10-year history:
-    - If it's in the riskiest 40% of historical readings → votes **Risk-Off**
-    - If it's in the safest 40% → votes **Risk-On**
-    - Middle 20% → votes **Neutral**
-    
-    Majority wins. Ties go to the more conservative label (Risk-Off beats Neutral beats Risk-On).
-    
-    ---
-    
-    ### Practical Tips
-    
-    - **You don't need to check every number.** The regime banner and signal count give you 80% of the picture in 10 seconds.
-    - **One red flag isn't a crisis.** Look for clusters — when VIX, credit spreads, and the yield curve all flash warnings together, that's significant.
-    - **Regimes persist.** Risk-on or risk-off conditions can last months. Don't expect daily changes.
-    - **This is a map, not a crystal ball.** It tells you what environment we're in. It doesn't predict tomorrow's market move.
-    - **Use the timeframe selector** on the charts (1M/3M/6M/1Y) to zoom in or out depending on whether you're checking this week or studying the bigger trend.
-    """)
 
 # ============================================================
 # LOAD DATA
