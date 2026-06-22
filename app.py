@@ -366,7 +366,7 @@ aud_dir = get_dir(aud_val, one_month_ago.get("AUDUSD"), 0.5, 0.5)
 # REGIME BANNER
 # ============================================================
 st.markdown(f"""
-<div style="background-color:#F8FAFC;border:2px solid {regime_color};border-radius:12px;padding:16px 24px;margin-bottom:16px;">
+<div style="background-color:#161B22;border:1px solid #30363D;;border:2px solid {regime_color};border-radius:12px;padding:16px 24px;margin-bottom:16px;">
 <table style="width:100%;text-align:center;font-size:1.1rem;">
 <tr>
 <td><b>Current Regime</b><br><span style="font-size:1.8rem;font-weight:bold;color:{regime_color};">{regime_display}</span></td>
