@@ -28,6 +28,8 @@ INDICATOR_CONFIG = {
     "Gold_vs_Oil": {"higher_is_riskier": None, "tier": "deep_dive", "votes": False, "frequency": "daily", "percentile_window_years": None, "question": "Growth scare or inflation scare?", "unit": "", "decimals": 2, "color": "#B8860B", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
     "MOVE": {"higher_is_riskier": True, "tier": "deep_dive", "votes": False, "frequency": "daily", "percentile_window_years": None, "question": "Is rate volatility confirming equity fear?", "unit": "", "decimals": 1, "color": "#8B4513", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
     "WALCL_T": {"higher_is_riskier": None, "tier": "deep_dive", "votes": False, "frequency": "weekly", "percentile_window_years": None, "question": "Is liquidity expanding or contracting?", "unit": "$T", "decimals": 2, "color": "#4B0082", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
+    "TGA_T": {"higher_is_riskier": None, "tier": "deep_dive", "votes": False, "frequency": "weekly", "percentile_window_years": None, "question": "Is the Treasury draining bank reserves?", "unit": "$T", "decimals": 2, "color": "#FF6B6B", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
+    "Net_Liquidity": {"higher_is_riskier": False, "tier": "deep_dive", "votes": False, "frequency": "weekly", "percentile_window_years": None, "question": "Net liquidity: Fed balance sheet minus TGA. Rising = supportive, falling = drain.", "unit": "$T", "decimals": 2, "color": "#00D4AA", "fixed_refs": [], "ref_labels": [], "ref_colors": [], "summary_verb_up": "", "summary_verb_down": "", "summary_label": ""},
 }
 
 # ============================================================
@@ -327,7 +329,7 @@ def load_all_data():
     yf_hist = yf.download(list(tickers.values()), start=hist_start, end=today, progress=False)["Close"]
     yf_hist = yf_hist.rename(columns={v: k for k, v in tickers.items()})
 
-    fred_series = {"HY_OAS": "BAMLH0A0HYM2", "T10Y3M": "T10Y3M", "NFCI": "NFCI", "DGS2": "DGS2", "WALCL": "WALCL"}
+    fred_series = {"HY_OAS": "BAMLH0A0HYM2", "T10Y3M": "T10Y3M", "NFCI": "NFCI", "DGS2": "DGS2", "WALCL": "WALCL", "TGA": "WTREGEN"}
     fred_hist = {}
     for name, sid in fred_series.items():
         fred_hist[name] = fred.get_series(sid, hist_start, today)
@@ -343,12 +345,18 @@ def load_all_data():
     percentile_source["HYG_vs_LQD"] = percentile_source["HYG"] / percentile_source["LQD"]
     percentile_source["XLY_vs_XLP"] = percentile_source["XLY"] / percentile_source["XLP"]
     percentile_source["WALCL_T"] = percentile_source["WALCL"] / 1_000_000
+    # Liquidity monitor
+    percentile_source["TGA_T"] = percentile_source["TGA"] / 1_000_000  # Convert millions to trillions
+    percentile_source["Net_Liquidity"] = percentile_source["WALCL_T"] - percentile_source["TGA_T"]    
 
     dash_start = today - timedelta(days=365)
     df = percentile_source.loc[dash_start:].copy()
     for key in INDICATOR_CONFIG:
         if key in df.columns:
             df[key + "_SMA"] = df[key].rolling(20).mean()
+    # Also add SMA for Net_Liquidity
+    if "Net_Liquidity" in df.columns:
+        df["Net_Liquidity_SMA"] = df["Net_Liquidity"].rolling(20).mean()
 
     re_steepening = False
     if "T10Y3M" in df.columns:
@@ -783,6 +791,8 @@ if full_view:
         st.markdown("- **Daily:** VIX, HY Spread, 10Y-3M, DXY, SPY/TLT, USD/JPY, AUD/USD, Copper/Gold, EEM/SPY, HYG/LQD, XLY/XLP, 2Y Yield, Gold/Oil, MOVE")
         st.markdown("- **Weekly (Wed):** NFCI — updated once per week")
         st.markdown("- **Weekly (Thu):** Fed Balance Sheet — updated once per week")
+        st.markdown("- **Weekly (Thu):** TGA — updated once per week")
+        st.markdown("- **Net Liquidity** = Fed Balance Sheet minus TGA. Rising = liquidity supportive. Falling = liquidity draining.")
         st.markdown("Weekly indicators may appear stale between updates. This is expected behaviour.")
 
 # ============================================================
